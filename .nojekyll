@@ -1,0 +1,3 @@
+# Schakelt Jekyll uit op GitHub Pages.
+# Zonder dit bestand negeert Jekyll alles met een underscore-prefix,
+# waardoor /_i18n.js een 404 gaf en de DE-vertaallaag nooit laadde.
