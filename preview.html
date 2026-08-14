@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="nl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GetWellis - Awin live preview en QA (300x250)</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:24px;font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:#f7f8fa;color:#111}
+h1{font-size:20px;margin:0 0 4px} h2{font-size:15px;margin:26px 0 10px;padding-bottom:6px;border-bottom:2px solid #e5e7eb}
+.sub{color:#6b7280;margin:0 0 16px}
+.kaart{background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-bottom:14px}
+.rij{display:flex;flex-wrap:wrap;gap:16px}
+.vak{background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:12px}
+.vak h3{font-size:13px;margin:0 0 2px} .vak p{font-size:12px;color:#6b7280;margin:0 0 10px}
+iframe{border:1px solid #e5e7eb;border-radius:4px;display:block;background:#fff}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th,td{text-align:left;padding:5px 8px;border-bottom:1px solid #e5e7eb} th{background:#f3f4f6;font-weight:600}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+.ok{color:#0a7d33;font-weight:600} .fout{color:#c92a2a;font-weight:600}
+.badge{display:inline-block;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:700}
+.b-ok{background:#e6f4ea;color:#0a7d33} .b-fout{background:#fdecea;color:#c92a2a} .b-wacht{background:#f3f4f6;color:#6b7280}
+button{background:#004851;color:#fff;border:0;border-radius:6px;padding:8px 14px;font-size:13px;cursor:pointer;margin-right:8px}
+.let{background:#fffbea;border:1px solid #f3e0a0;border-radius:6px;padding:10px 12px;font-size:12.5px;margin:10px 0}
+code{background:#f3f4f6;padding:1px 5px;border-radius:3px;font-size:12px}
+</style></head><body>
+<h1>GetWellis - Awin live preview en QA</h1>
+<p class="sub">Formaat 300x250 (NL). Alles hieronder laadt <b>live vanaf GitHub Pages</b> - exact de bestanden die Awin ophaalt.</p>
+<div class="kaart"><button onclick="alles()">Opnieuw laden en meten</button>
+<button onclick="meetAlles()">Alleen opnieuw meten</button>
+<span id="eindoordeel" class="badge b-wacht">bezig...</span>
+<div id="zichtbaarheid" class="let" style="display:none;background:#fdecea;border-color:#f5b5b5"><b>Deze tab staat op de achtergrond.</b> Chrome bevriest dan requestAnimationFrame, waardoor de entree-animatie niet start en de meting onterecht een afwijking toont. Zet dit tabblad op de voorgrond - de meting draait dan automatisch opnieuw.</div><div class="let"><b>Let op:</b> houd je muis <i>weg</i> van de banners tijdens het meten. Bij hover klapt het pijltje in de CTA uit (ontworpen gedrag), waardoor de knop van 156px naar ~168px gaat en de meting terecht een afwijking meldt.</div></div>
+<h2>1. Assets live op de CDN</h2>
+<div class="kaart"><table id="assets"><thead><tr><th>Bestand</th><th>HTTP</th><th>bytes</th><th>Content-Type</th><th>Controle</th></tr></thead><tbody></tbody></table></div>
+<h2>2. De banner in drie omgevingen</h2>
+<p class="sub" style="margin-top:-6px">Elk kader is een apart document. In alle drie wordt de banner-HTML <b>pas geinjecteerd nadat het document al volledig geladen is</b> - precies wat Awin doet.</p>
+<div class="rij">
+<div class="vak"><h3>A - Zoals Awin levert</h3><p>Schone pagina, na load geinjecteerd</p><iframe id="fA" width="330" height="280"></iframe></div>
+<div class="vak"><h3>B - Vervuilde publisher-CSS</h3><p>Met !important-resets van een uitgever</p><iframe id="fB" width="330" height="280"></iframe></div>
+<div class="vak"><h3>C - Twee banners tegelijk</h3><p>Zelfde pagina, beide moeten werken</p><iframe id="fC" width="330" height="560"></iframe></div>
+</div>
+<h2>3. Meting - verwacht versus werkelijk</h2>
+<div class="kaart"><table id="meet"><thead><tr><th>Element</th><th>verwacht (x y b x h)</th><th>A</th><th>B</th><th>C (banner 2)</th><th>Oordeel</th></tr></thead><tbody></tbody></table></div>
+<h2>4. Runtime-controles</h2>
+<div class="kaart"><table id="runtime"><thead><tr><th>Controle</th><th>A</th><th>B</th><th>C</th><th>Waarom dit telt</th></tr></thead><tbody></tbody></table></div>
+<h2>5. Losse banner op ware grootte</h2>
+<p class="sub" style="margin-top:-6px">Ongeschaald, met de animatie die de bezoeker ziet. Herlaad voor een andere foto/kop-combinatie (DCO-rotatie).</p>
+<div class="vak" style="display:inline-block"><iframe id="fSolo" width="300" height="250" scrolling="no"></iframe></div>
+<script>
+var CDN = location.origin + location.pathname.replace(/\/[^\/]*$/, "");
+var MAP = CDN + "/300x250";
+var REF = {
+ price:{x:200,y:18,w:80,h:80,tol:0.6},
+ logo:{x:104.5,y:88,w:91,h:29.17,tol:0.6},
+ headline:{x:11,y:127.78,w:278,h:42.44,tol:1.2},
+ cta:{x:71.83,y:183.06,w:156.34,h:31.94,tol:1.2},
+ trust:{x:0,y:229,w:300,h:21,tol:0.6},
+ stars:{x:92.4,y:234,w:59,h:11,tol:3.5},
+ hero:{x:0,y:0,w:300,h:73,tol:0.6}};
+function bannerHTML(){
+ return '<div id="ad-container" class="ad-container" role="link" tabindex="0" aria-label="GetWellis">'
+ + '<div class="bg-color"></div><div id="story-system" class="story-system">'
+ + '<div class="slide is-active"><div class="hero-container"><div class="hero-image-wrapper"><img class="hero-image" id="personA" alt="Tevreden klant"></div></div><div class="headline-container"><div class="headline" id="headlineA" data-maxh="68"></div></div></div>'
+ + '<div class="slide"><div class="hero-container"><div class="hero-image-wrapper"><img class="hero-image" id="personB" alt="Tevreden klant"></div></div><div class="headline-container"><div class="headline" id="headlineB" data-maxh="68"></div></div></div>'
+ + '</div><div class="text-container"><div class="logo-container"><img class="logo-image" src="'+MAP+'/Wellis-Logo-Pink-RGB.svg" alt="Wellis logo"></div></div>'
+ + '<div class="price-container"><img class="price-stamp-bg" src="'+MAP+'/Insert-prize-stamp.svg" alt=""><div class="price-content"><span class="price-sub price-vanaf">vanaf</span><span class="price-main">&euro;149</span><span class="price-sub">maand</span></div></div>'
+ + '<div class="cta-container"><span class="cta-button"><span class="cta-label">Start met afvallen</span><span class="cta-arrow" aria-hidden="true"><svg class="cta-chev" viewBox="0 0 9 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2.5 3.5 6.5 8 2.5 12.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="cta-shine"></span></span></div>'
+ + '<div class="trust-container"><img class="tp-logo" src="'+MAP+'/Trustpilot_brandmark_gr-blk-RGB.svg" alt="Trustpilot"><div class="tp-stars-mask"><img class="tp-stars" src="'+MAP+'/Trustpilot_ratings_4halfstar-RGB.svg" alt="sterren"></div><span class="tp-reviews"><span class="tp-score">4.7</span>/5 van <span id="tp-counter">2.574</span>+ reviews.</span></div>'
+ + '</div>';}
+var VUIL = "*,*::before,*::after{box-sizing:content-box!important}"
+ + "html{font-size:20px}"
+ + "body{font-family:Georgia,serif;font-size:18px;line-height:1.8;letter-spacing:.05em;color:#333}"
+ + "img{max-width:100%!important;height:auto!important;vertical-align:middle;border:2px solid red;display:inline}"
+ + "div{margin:0 0 12px 0;padding:2px}"
+ + "span{letter-spacing:.1em;text-transform:uppercase}";
+
+/* Vult een iframe: eerst een LEEG document laten laden, daarna pas injecteren. */
+function vulFrame(id, aantal, vuil, marge){
+ var f = document.getElementById(id);
+ f.srcdoc = "<!DOCTYPE html><html><head><meta charset=utf-8></head><body></body></html>";
+ f.onload = function(){
+  var d = f.contentDocument, w = f.contentWindow;
+  if (!d) return;
+  w.__na_load = d.readyState;
+  w.__fouten = [];
+  w.addEventListener("error", function(e){ w.__fouten.push((e.message||"fout")); }, true);
+  w.WELLIS_ASSET_BASE = MAP + "/";
+  var st = d.createElement("style");
+  st.textContent = (vuil ? VUIL : "") + "body{margin:" + (marge===0?0:8) + "px;background:#fff}";
+  d.head.appendChild(st);
+  var lk = d.createElement("link"); lk.rel = "stylesheet"; lk.href = MAP + "/styles.css?t=" + Date.now();
+  d.head.appendChild(lk);
+  var html = bannerHTML();
+  if (aantal > 1) html += "<div style=height:12px></div>" + bannerHTML();
+  d.body.insertAdjacentHTML("beforeend", html);
+  var bronnen = [MAP+"/banner-data.js", CDN+"/_i18n.js", MAP+"/randomizer.js", MAP+"/script.js"];
+  (function volgende(i){
+    if (i >= bronnen.length) { w.__klaar = true; return; }
+    var s = d.createElement("script");
+    s.src = bronnen[i] + "?t=" + Date.now();
+    s.onload = function(){ volgende(i+1); };
+    s.onerror = function(){ w.__fouten.push("LAADFOUT " + bronnen[i].split("/").pop()); volgende(i+1); };
+    d.body.appendChild(s);
+  })(0);
+ };
+}
+function laadFrames(){ vulFrame("fA",1,false); vulFrame("fB",1,true); vulFrame("fC",2,false); vulFrame("fSolo",1,false,0); }
+
+function checkAssets(){
+ var lijst = [["300x250/index.html","html"],["300x250/styles.css","css"],["300x250/banner-data.js","js"],
+  ["300x250/randomizer.js","js"],["300x250/script.js","js"],["_i18n.js","js"],
+  ["300x250/Wellis-Logo-Pink-RGB.svg","svg"],["300x250/Insert-prize-stamp.svg","svg"],
+  ["300x250/Trustpilot_brandmark_gr-blk-RGB.svg","svg"],["300x250/Trustpilot_ratings_4halfstar-RGB.svg","svg"],
+  ["300x250/fonts/Gordita-Regular.woff2","font"],["300x250/fonts/Gordita-Medium.woff2","font"],
+  ["300x250/fonts/Gordita-Bold.woff2","font"],["300x250/man-smiling.webp","img"],["300x250/woman-smiling.webp","img"]];
+ var tb = document.querySelector("#assets tbody"); tb.innerHTML = "";
+ return Promise.all(lijst.map(function(p){
+  return fetch(CDN+"/"+p[0]+"?t="+Date.now(),{cache:"no-store"}).then(function(r){
+    return r.arrayBuffer().then(function(b){
+      var ct=(r.headers.get("content-type")||"-").split(";")[0];
+      var goed = r.status===200 && b.byteLength>0, opm="";
+      if (goed && (p[1]==="js"||p[1]==="css")) {
+        var t = new TextDecoder().decode(b).replace(/^\s+/,"");
+        if (t.indexOf("<!DOCTYPE")===0 || t.indexOf("<html")===0) { goed=false; opm="HTML i.p.v. code"; }
+      }
+      return {pad:p[0],st:r.status,bytes:b.byteLength,ct:ct,goed:goed,opm:opm};
+    });
+  }).catch(function(e){ return {pad:p[0],st:"-",bytes:0,ct:"-",goed:false,opm:String(e.message).slice(0,30)}; });
+ })).then(function(res){
+  res.forEach(function(r){
+   var tr=document.createElement("tr");
+   tr.innerHTML = "<td class=mono>"+r.pad+"</td><td class="+(r.goed?"ok":"fout")+">"+r.st+"</td>"
+    + "<td class=mono>"+r.bytes.toLocaleString("nl-NL")+"</td><td class=mono>"+r.ct+"</td>"
+    + "<td class="+(r.goed?"ok":"fout")+">"+(r.goed?"OK":(r.opm||"MISLUKT"))+"</td>";
+   tb.appendChild(tr);
+  });
+  return res.every(function(r){return r.goed;});
+ });
+}
+
+function meetFrame(id, index){
+ var f=document.getElementById(id);
+ try{
+  var d=f.contentDocument, w=f.contentWindow;
+  if(!d) return {fout:"geen toegang"};
+  var ads=d.querySelectorAll(".ad-container");
+  var ad=ads[index||0];
+  if(!ad) return {fout:"banner niet gevonden"};
+  var a=ad.getBoundingClientRect();
+  function one(s){ var e=ad.querySelector(s); if(!e) return null; var r=e.getBoundingClientRect();
+   return {x:+(r.left-a.left).toFixed(2),y:+(r.top-a.top).toFixed(2),w:+r.width.toFixed(2),h:+r.height.toFixed(2)}; }
+  return {aantal:ads.length, isLoaded:ad.classList.contains("is-loaded"), guard:ad.getAttribute("data-gw-init"),
+   readyState:w.__na_load||d.readyState, fouten:(w.__fouten||[]).slice(),
+   container:{w:+a.width.toFixed(2),h:+a.height.toFixed(2)},
+   headline:one(".headline"),price:one(".price-container"),logo:one(".logo-image"),
+   cta:one(".cta-button"),trust:one(".trust-container"),stars:one(".tp-stars-mask"),
+   hero:one(".slide.is-active .hero-image"),
+   kop:(ad.querySelector("#headlineA")||{}).textContent||"",
+   foto:((ad.querySelector("#personA")||{}).getAttribute("src")||"").split("/").pop().split("?")[0]};
+ }catch(e){ return {fout:String(e.message).slice(0,60)}; }
+}
+function fmt(v){ return v ? (v.x+" "+v.y+" "+v.w+"x"+v.h) : "-"; }
+function afw(v,r){ if(!v) return Infinity; return Math.max(Math.abs(v.x-r.x),Math.abs(v.y-r.y),Math.abs(v.w-r.w),Math.abs(v.h-r.h)); }
+
+function meetAlles(){
+ if (document.hidden) { var bz=document.getElementById("eindoordeel");
+  bz.className="badge b-wacht"; bz.textContent="wacht tot dit tabblad zichtbaar is";
+  document.getElementById("zichtbaarheid").style.display="block"; return; }
+ document.getElementById("zichtbaarheid").style.display="none";
+ var A=meetFrame("fA"), B=meetFrame("fB"), C=meetFrame("fC",1), C0=meetFrame("fC",0);
+ var tb=document.querySelector("#meet tbody"); tb.innerHTML=""; var allesGoed=true;
+ Object.keys(REF).forEach(function(k){
+  var r=REF[k];
+  var cel=[A,B,C].map(function(m){
+   if(m.fout) return {html:"<span class=fout>"+m.fout+"</span>",ok:false,d:0};
+   var d=afw(m[k],r), ok=d<=r.tol;
+   return {html:"<span class="+(ok?"ok":"fout")+">"+fmt(m[k])+"</span>",ok:ok,d:d};
+  });
+  var rijOk=cel.every(function(c){return c.ok;}); if(!rijOk) allesGoed=false;
+  var maxD=Math.max.apply(null,cel.map(function(c){return isFinite(c.d)?c.d:0;}));
+  var tr=document.createElement("tr");
+  tr.innerHTML="<td>"+k+"</td><td class=mono>"+r.x+" "+r.y+" "+r.w+"x"+r.h+"</td>"
+   +"<td class=mono>"+cel[0].html+"</td><td class=mono>"+cel[1].html+"</td><td class=mono>"+cel[2].html+"</td>"
+   +"<td class="+(rijOk?"ok":"fout")+">"+(rijOk?("OK (max "+maxD.toFixed(2)+"px)"):"AFWIJKING")+"</td>";
+  tb.appendChild(tr);
+ });
+ var rt=document.querySelector("#runtime tbody"); rt.innerHTML="";
+ var checks=[
+  ["Document was al geladen bij injectie",function(m){return m.readyState==="complete";},"Precies het Awin-scenario waarin de banner eerder dood bleef"],
+  ["Banner geinitialiseerd (is-loaded)",function(m){return m.isLoaded===true;},"Zonder deze klasse blijven sticker, CTA en Trustpilot op opacity:0"],
+  ["Container exact 300x250",function(m){return m.container&&m.container.w===300&&m.container.h===250;},"Publisher-CSS mag de afmeting niet veranderen"],
+  ["Foto geladen van de CDN",function(m){return !!m.foto;},"Bewijst dat WELLIS_ASSET_BASE werkt zonder base href"],
+  ["Kop ingevuld",function(m){return (m.kop||"").length>5;},"Randomizer heeft gedraaid"],
+  ["Geen JS-fouten",function(m){return (m.fouten||[]).length===0;},"Console moet schoon zijn"]];
+ checks.forEach(function(c){
+  var res=[A,B,C].map(function(m){ try{return !!c[1](m);}catch(e){return false;} });
+  if(res.indexOf(false)>=0) allesGoed=false;
+  var tr=document.createElement("tr");
+  tr.innerHTML="<td>"+c[0]+"</td>"+res.map(function(x){return "<td class="+(x?"ok":"fout")+">"+(x?"OK":"FOUT")+"</td>";}).join("")
+   +"<td style=\"color:#6b7280;font-size:12px\">"+c[2]+"</td>";
+  rt.appendChild(tr);
+ });
+ var beide = C0.isLoaded===true && C.isLoaded===true && C.aantal===2;
+ if(!beide) allesGoed=false;
+ var tr1=document.createElement("tr");
+ tr1.innerHTML="<td>Twee banners op een pagina</td><td>-</td><td>-</td><td class="+(beide?"ok":"fout")+">"+(beide?"BEIDE OK":"FOUT")
+  +"</td><td style=\"color:#6b7280;font-size:12px\">Voorheen bleef de tweede banner onzichtbaar</td>";
+ rt.appendChild(tr1);
+ var tr2=document.createElement("tr");
+ tr2.innerHTML="<td>Getoonde DCO-content</td><td colspan=3 class=mono style=\"font-size:11.5px\">A: "+(A.foto||"?")+" - "+String(A.kop||"").slice(0,34)
+  +"</td><td style=\"color:#6b7280;font-size:12px\">Wisselt per herlaadbeurt - dat hoort zo</td>";
+ rt.appendChild(tr2);
+ var b=document.getElementById("eindoordeel");
+ b.className="badge "+(allesGoed?"b-ok":"b-fout");
+ b.textContent=allesGoed?"ALLE CONTROLES GESLAAGD":"ER IS EEN AFWIJKING - zie tabel";
+}
+function alles(){
+ var b=document.getElementById("eindoordeel"); b.className="badge b-wacht"; b.textContent="bezig...";
+ laadFrames(); checkAssets(); setTimeout(meetAlles,5000);
+}
+document.addEventListener("visibilitychange", function(){ if(!document.hidden) alles(); });
+alles();
+</script></body></html>
