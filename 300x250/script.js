@@ -3,25 +3,34 @@
  * Architecture supports performance, storytelling rotation, and scale adaptation.
  */
 
-// 1. ClickTag Implementation for Ad Servers (DV360, CM360, GDN, Adform,
-//    Sizmek, Weborama). The ad server may inject window.clickTag at runtime;
-//    we fall back to the brand URL when serving locally / for QA.
-var clickTag = "https://www.getwellis.com";
+// 1. ClickTag + bootstrap
+(function () {
+"use strict";
+
+// Herentree-guard: voorkomt dubbele initialisatie wanneer de banner-HTML
+// meerdere keren wordt geinjecteerd of het script twee keer wordt geladen
+// (twee banners op een publisher-pagina). Zonder guard gaf dit een
+// SyntaxError "Identifier 'BannerSystem' has already been declared",
+// waardoor de banner volledig dood bleef.
+var ROOT = document.getElementById('ad-container');
+if (!ROOT) return;
+if (ROOT.getAttribute('data-gw-init') === '1') return;
+ROOT.setAttribute('data-gw-init', '1');
+
+// ClickTag blijft bewust op window: ad servers (DV360, CM360, GDN, Adform,
+// Sizmek, Weborama) injecteren window.clickTag at runtime.
+if (typeof window.clickTag === "undefined") {
+    window.clickTag = "https://www.getwellis.com";
+}
+var clickTag = window.clickTag;
 
 function fireClickThrough() {
-    // Prefer the server-provided macro, otherwise use the hard fallback.
     window.open(window.clickTag || clickTag, '_blank');
 }
 
 (function bindClickSurface() {
-    var surface = document.getElementById('ad-container');
-    if (!surface) return;
-
-    // Mouse / touch
+    var surface = ROOT;
     surface.addEventListener('click', fireClickThrough);
-
-    // Keyboard accessibility: the container is role="link", so Enter and
-    // Space should activate it just like a real anchor.
     surface.addEventListener('keydown', function (e) {
         if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
             e.preventDefault();
@@ -31,30 +40,22 @@ function fireClickThrough() {
 })();
 
 // 2. Banner Core Logic
-const BannerSystem = {
+var BannerSystem = {
     init: function() {
         this.cacheDOM();
-        
-        // Ensure browser is ready before firing hardware-accelerated animations
         requestAnimationFrame(() => {
             this.startEntranceSequence();
             this.initTrustpilotCounter();
             this.initStoryRotation();
             this.initStickerReplay();
         });
-
-        // IAB / CM360 / publisher compliance: animation must not run longer than
-        // 15s and must hold a static end frame (CTA visible). Freeze at 15s.
         this.freezeTimer = setTimeout(() => this.freeze(), this.MAX_ANIM_MS);
     },
 
     MAX_ANIM_MS: 15000,
-    STICKER_REPOP_EVERY_MS: 15000,   // sticker re-pops once at the 7.5s midpoint (freezes at 15s)
+    STICKER_REPOP_EVERY_MS: 15000,
     frozen: false,
 
-    // Stops every looping animation and holds the current frame as the static
-    // end state. The CTA, logo, headline, sticker and Trustpilot bar all remain
-    // visible; only motion stops.
     freeze: function() {
         this.frozen = true;
         clearInterval(this.rotationTimer);
@@ -64,32 +65,22 @@ const BannerSystem = {
     },
 
     cacheDOM: function() {
-        this.container = document.getElementById('ad-container');
+        this.container = ROOT;
         this.tpCounter = document.getElementById('tp-counter');
         this.slidesWrapper = document.getElementById('story-system');
         this.slides = document.querySelectorAll('.slide');
     },
 
-    // Handles the primary 0.0s - 2.0s reveal timeline cleanly via CSS class injection
     startEntranceSequence: function() {
         this.container.classList.add('is-loaded');
-
-        // Apply breathing class after the initial scale down finishes (1.6s + buffer)
         setTimeout(() => {
             this.container.classList.add('is-settled');
         }, 1800);
     },
 
-    // Trustpilot counter: starts at 2.570 and ALWAYS keeps climbing — it never
-    // stops. The speed varies (fast bursts → slow crawls) but the count only
-    // ever goes up. (Real live count was 2.574 at build time; ad-serving
-    // sandboxes can't fetch it at runtime, so we animate it.)
-    // 2.574 is treated as the realistic level: below it the count climbs at a
-    // lively, variable pace; once past it the count keeps inching up but much
-    // more slowly, so it stays believable while never freezing.
     initTrustpilotCounter: function() {
-        const PLATEAU = 2574;   // realistic level — climbing continues, just slower
-        let current = 2570;
+        const PLATEAU = 2641;
+        let current = 2637;
 
         const render = () => {
             if (this.tpCounter) this.tpCounter.textContent = current.toLocaleString('nl-NL');
@@ -98,21 +89,17 @@ const BannerSystem = {
 
         const tick = () => {
             if (this.frozen) return;
-            current += 1;            // climbs while animating; frozen at 15s
+            current += 1;
             render();
-
             let delay;
             if (current < PLATEAU) {
-                // Lively, highly-variable pacing on the way up to the realistic level
                 const r = Math.random();
-                if      (r < 0.30) delay = 110  + Math.random() * 210;   // super fast burst
-                else if (r < 0.64) delay = 400  + Math.random() * 800;   // brisk
-                else if (r < 0.86) delay = 1300 + Math.random() * 900;   // steady
-                else               delay = 2300 + Math.random() * 1100;  // slow (never frozen)
+                if      (r < 0.30) delay = 110  + Math.random() * 210;
+                else if (r < 0.64) delay = 400  + Math.random() * 800;
+                else if (r < 0.86) delay = 1300 + Math.random() * 900;
+                else               delay = 2300 + Math.random() * 1100;
             } else {
-                // Past the realistic level: keep climbing, but slowly, so the
-                // number stays believable yet the counter never stops.
-                delay = 86400000;   // hold at 2.574 through the 15s window
+                delay = 86400000;
             }
             this.counterTimer = setTimeout(tick, delay);
         };
@@ -120,13 +107,11 @@ const BannerSystem = {
         this.counterTimer = setTimeout(tick, 2000);
     },
 
-    // Scalable Story System for crossfading multiple messages
     initStoryRotation: function() {
         if (this.slides.length <= 1) return;
-
         let currentSlide = 0;
         const totalSlides = this.slides.length;
-        const slideDuration = 4000; // each story frame stays ~4s (0.5s slower)
+        const slideDuration = 4000;
 
         this.rotationTimer = setInterval(() => {
             this.slides[currentSlide].classList.remove('is-active');
@@ -136,10 +121,6 @@ const BannerSystem = {
         }, slideDuration);
     },
 
-    // Price sticker re-pop: at the midpoint of the timeline the sticker
-    // gracefully pops OUT and then replays its original entrance pop. Purely
-    // additive — the idle pulse hands over and resumes automatically. (No-op
-    // on formats without a sticker.)
     initStickerReplay: function() {
         var sticker = document.querySelector('.price-container');
         if (!sticker) return;
@@ -161,8 +142,6 @@ const BannerSystem = {
             sticker.classList.add('is-stkout');
         };
 
-        // First replay halfway into the timeline; any later repeat is cancelled
-        // by the 15s freeze, so on IAB this fires exactly once.
         var period = this.STICKER_REPOP_EVERY_MS;
         this.stickerTimer = setTimeout(function tick() {
             popOut();
@@ -170,9 +149,6 @@ const BannerSystem = {
         }, period / 2);
     },
 
-    // Re-plays the horizontal slide-in for the headline of the newly active
-    // slide. line-1 re-enters from the left, line-2 from the right — matching
-    // the entrance animation so every rotation feels consistent.
     retriggerTextAnim: function(slideElement) {
         const lines = slideElement.querySelectorAll('.headline');
         lines.forEach(line => {
@@ -181,10 +157,7 @@ const BannerSystem = {
             line.style.transform = 'translateX(' + (fromLeft ? '-38px' : '38px') + ')';
             line.style.opacity = '0';
             line.style.filter = 'blur(5px)';
-
-            // Force reflow, then clear so the CSS transition re-runs to rest state
             void line.offsetWidth;
-
             line.style.transition = '';
             line.style.transform = '';
             line.style.opacity = '';
@@ -193,6 +166,25 @@ const BannerSystem = {
     }
 };
 
-window.addEventListener('load', () => {
-    BannerSystem.init();
-});
+/* ---------------------------------------------------------------------
+   BOOTSTRAP - kritieke fix voor embedded/Awin-omgevingen.
+
+   Voorheen: window.addEventListener('load', ...). Dat event vuurt EENMALIG.
+   Wanneer een ad-editor of publisher de banner-HTML injecteert in een
+   document dat al klaar is (readyState 'complete'), is 'load' allang
+   gepasseerd en draaide init() nooit. Gevolg: de klasse 'is-loaded' werd
+   niet gezet, waardoor prijssticker, CTA, headline en Trustpilot-balk
+   permanent op opacity:0 bleven staan -> lege teal box.
+
+   Nu: direct starten als het document al geladen is, anders wachten op
+   'load'. Zelfde patroon als randomizer.js al gebruikte.
+   --------------------------------------------------------------------- */
+function boot() { BannerSystem.init(); }
+
+if (document.readyState === 'complete') {
+    boot();
+} else {
+    window.addEventListener('load', boot, { once: true });
+}
+
+})();
