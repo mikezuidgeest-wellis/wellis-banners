@@ -27,6 +27,21 @@
   }
   function pick(arr, n) { return shuffle(arr || []).slice(0, n); }
 
+  /* Asset-base: in een embedded/Awin-context staat de banner-HTML op het
+     domein van de PUBLISHER, niet op onze CDN. Relatieve bestandsnamen uit
+     banner-data.js zouden dan 404'en. De host-pagina zet daarom
+     window.WELLIS_ASSET_BASE naar de absolute CDN-map.
+     Leeg gelaten (standalone/preview) -> gedrag blijft exact relatief.
+     Bewust GEEN <base href>: dat zou ook alle links van de publisher-pagina
+     herschrijven en is dus onveilig in een geinjecteerde omgeving. */
+  function assetURL(file) {
+    if (!file) return file;
+    if (/^(?:[a-z]+:)?\/\//i.test(file) || file.charAt(0) === "/") return file;
+    var base = window.WELLIS_ASSET_BASE || "";
+    if (base && base.charAt(base.length - 1) !== "/") base += "/";
+    return base + file;
+  }
+
   /* Lazy image assignment — src is set ONLY after selection, so the
      browser downloads exactly one male + one female photo. */
   function setPhoto(el, file, focus, fallback) {
@@ -34,7 +49,7 @@
     var chosen = file || fallback;
     if (!file) console.warn("[GetWellis] image pool empty — using fallback:", fallback);
     if (focus) el.style.objectPosition = focus;
-    if (chosen) el.src = chosen;
+    if (chosen) el.src = assetURL(chosen);
   }
 
   /* Shrink-to-fit so any headline length stays inside its box. */
