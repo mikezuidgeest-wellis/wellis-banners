@@ -7,7 +7,29 @@
   --brand-teal:#004851;--brand-beige:#F4E2B4;--text-white:#FFFFFF;--tp-text:#4A4A4A;
   --ease-premium:cubic-bezier(0.16,1,0.3,1);--ease-elastic:cubic-bezier(0.34,1.56,0.64,1);
 }
-*{box-sizing:border-box;margin:0;padding:0;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}
+/* ===== CSS-ISOLATIE =====================================================
+   Was: een globale `*{}` selector. Die lekte de reset naar de publisher-pagina
+   EN bood geen bescherming tegen publisher-CSS die terugkomt op onze elementen
+   (gemeten effect: CTA werd 160x39 i.p.v. 156x32 door `*{box-sizing:content-box}`
+   van de uitgever, headline schoof 5px).
+   Nu: alles strikt gescoped op .ad-container. */
+.ad-container,
+.ad-container *,
+.ad-container *::before,
+.ad-container *::after{
+  box-sizing:border-box;margin:0;padding:0;border:0;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  font-family:inherit;font-size:inherit;line-height:inherit;letter-spacing:inherit;
+  text-transform:none;text-indent:0;text-align:inherit;vertical-align:baseline;
+  float:none;clear:none;min-width:0;min-height:0;max-width:none;max-height:none;
+  background:none;box-shadow:none;text-shadow:none;list-style:none;
+  transform-origin:50% 50%;
+}
+/* Publishers zetten vrijwel altijd img{max-width:100%;height:auto} */
+.ad-container img{max-width:none;max-height:none;width:auto;height:auto;display:block;border:0;}
+.ad-container{font-size:16px;line-height:1.1;letter-spacing:normal;text-align:left;
+  font-style:normal;font-variant:normal;word-spacing:normal;text-decoration:none;
+  direction:ltr;unicode-bidi:normal;white-space:normal;color:var(--text-white);}
 
 .ad-container{position:relative;display:block;width:300px;height:250px;background:var(--brand-teal);overflow:hidden;cursor:pointer;text-decoration:none;
   font-family:"Gordita",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;}
@@ -20,12 +42,12 @@
 /* Photo (top band, bottom edge y73) */
 .hero-container{position:absolute;top:0;left:0;right:0;height:73px;overflow:hidden;}
 .hero-image-wrapper{width:100%;height:100%;opacity:0;transform:translateX(-30px) scale(1.08);transform-origin:center center;will-change:transform,opacity;}
-.hero-image{width:100%;height:100%;object-fit:cover;object-position:center 18%;}
+.ad-container .hero-image{width:100%;height:100%;object-fit:cover;object-position:center 18%;}
 
 /* Logo centred (cx150, ~91px, y88) */
 .text-container{position:absolute;top:0;left:0;right:0;z-index:5;pointer-events:none;}
 .logo-container{position:absolute;top:88px;left:0;right:0;display:flex;justify-content:center;opacity:0;transform:translateY(5px);}
-.logo-image{width:91px;height:auto;display:block;pointer-events:auto;transform-origin:center center;transition:transform .3s var(--ease-premium);}
+.ad-container .logo-image{width:91px;height:auto;display:block;pointer-events:auto;transform-origin:center center;transition:transform .3s var(--ease-premium);}
 .logo-image:hover{transform:scale(1.05);}
 
 /* Headline (single dynamic element, slides in from the left, shrink-to-fit) */
@@ -35,7 +57,7 @@
 
 /* Price sticker (text positions matched to the source) */
 .price-container{position:absolute;top:18px;right:20px;width:80px;height:80px;z-index:10;opacity:0;transform:scale(.6) rotate(-15deg);pointer-events:none;filter:drop-shadow(0 4px 6px rgba(0,0,0,.15));}
-.price-stamp-bg{position:absolute;inset:0;width:100%;height:100%;z-index:-1;}
+.ad-container .price-stamp-bg{position:absolute;inset:0;width:100%;height:100%;z-index:-1;}
 .price-content{position:relative;display:block;width:100%;height:100%;color:var(--brand-teal);line-height:1;}
 .price-content span{position:absolute;left:0;right:0;text-align:center;line-height:1;}
 .price-sub{font-size:13px;font-weight:500;}
@@ -63,9 +85,9 @@
 
 /* Trustpilot bar */
 .trust-container{position:absolute;bottom:0;left:0;right:0;height:21px;background:var(--text-white);display:flex;align-items:center;justify-content:center;gap:3px;z-index:10;opacity:0;transform:translateY(8px);}
-.tp-logo{height:12px;position:relative;top:-2.25px;}
+.ad-container .tp-logo{height:12px;width:auto;position:relative;top:-2.25px;}
 .tp-stars-mask{height:11px;width:0;overflow:hidden;}
-.tp-stars{height:11px;display:block;}
+.ad-container .tp-stars{height:11px;width:auto;display:block;}
 .tp-reviews{color:var(--tp-text);font-size:9.5px;font-weight:400;white-space:nowrap;letter-spacing:-0.3px;}
 .tp-score{font-weight:700;color:#191919;}
 
