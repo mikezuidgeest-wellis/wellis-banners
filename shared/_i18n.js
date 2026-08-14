@@ -15,6 +15,9 @@
 (function () {
   "use strict";
 
+  /* Duitse marktprijs (alleen DE; NL blijft 149 / 179) */
+  var DE_PRICE = "172";
+
   /* Dutch headline -> verified German */
   var HEAD = {
     "Stop met uitstellen, start met medisch afvallen.": "Schluss mit Aufschieben – jetzt medizinisch abnehmen.",
@@ -103,8 +106,9 @@
     // Duitse prijsnotatie: bedrag + spatie + euroteken ("€149" -> "149 €"). NL blijft "€149".
     var pm = document.querySelector(".price-main");
     if (pm) {
-      var m = (pm.textContent || "").match(/€\s*([\d.,]+)/);
-      if (m) pm.textContent = m[1] + " €";   // smalle vaste spatie (U+202F, DIN/Duden) houdt bedrag + € bij elkaar
+      // Duitse MARKTPRIJS: vast 172 € (de NL-sets tonen 149 / 179 en blijven ongemoeid).
+      // Bewust geen overname van het NL-bedrag meer: DE is een eigen prijspunt.
+      pm.textContent = DE_PRICE + " €";   // smalle vaste spatie (U+202F, DIN/Duden) houdt bedrag + € bij elkaar
     }
 
     // Trustpilot (DE), robuust over alle markup-varianten:

@@ -36,7 +36,7 @@
      herschrijven en is dus onveilig in een geinjecteerde omgeving. */
   function assetURL(file) {
     if (!file) return file;
-    if (/^(?:[a-z]+:)?\/\//i.test(file) || file.charAt(0) === "/") return file;
+    if (/^(?:[a-z]+:)?\/\//i.test(file) || file.charAt(0) === "/") return file; // al absoluut
     var base = window.WELLIS_ASSET_BASE || "";
     if (base && base.charAt(base.length - 1) !== "/") base += "/";
     return base + file;

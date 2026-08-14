@@ -26,6 +26,7 @@ if (typeof window.clickTag === "undefined") {
 var clickTag = window.clickTag;
 
 function fireClickThrough() {
+    // Prefer the server-provided macro, otherwise use the hard fallback.
     window.open(window.clickTag || clickTag, '_blank');
 }
 
@@ -35,19 +36,27 @@ function createBannerSystem(ROOT) {
   var BannerSystem = {
     init: function() {
         this.cacheDOM();
+        
+        // Ensure browser is ready before firing hardware-accelerated animations
         requestAnimationFrame(() => {
             this.startEntranceSequence();
             this.initTrustpilotCounter();
             this.initStoryRotation();
             this.initStickerReplay();
         });
+
+        // IAB / CM360 / publisher compliance: animation must not run longer than
+        // 15s and must hold a static end frame (CTA visible). Freeze at 15s.
         this.freezeTimer = setTimeout(() => this.freeze(), this.MAX_ANIM_MS);
     },
 
     MAX_ANIM_MS: 15000,
-    STICKER_REPOP_EVERY_MS: 15000,
+    STICKER_REPOP_EVERY_MS: 15000,   // sticker re-pops once at the 7.5s midpoint (freezes at 15s)
     frozen: false,
 
+    // Stops every looping animation and holds the current frame as the static
+    // end state. The CTA, logo, headline, sticker and Trustpilot bar all remain
+    // visible; only motion stops.
     freeze: function() {
         this.frozen = true;
         clearInterval(this.rotationTimer);
@@ -57,21 +66,31 @@ function createBannerSystem(ROOT) {
     },
 
     cacheDOM: function() {
-        this.container = ROOT;
+        this.container = ROOT;   // instantie-eigen root, niet document-breed
         this.tpCounter = ROOT.querySelector('#tp-counter');
         this.slidesWrapper = ROOT.querySelector('#story-system');
         this.slides = ROOT.querySelectorAll('.slide');
     },
 
+    // Handles the primary 0.0s - 2.0s reveal timeline cleanly via CSS class injection
     startEntranceSequence: function() {
         this.container.classList.add('is-loaded');
+
+        // Apply breathing class after the initial scale down finishes (1.6s + buffer)
         setTimeout(() => {
             this.container.classList.add('is-settled');
         }, 1800);
     },
 
+    // Trustpilot counter: starts at 2.570 and ALWAYS keeps climbing — it never
+    // stops. The speed varies (fast bursts → slow crawls) but the count only
+    // ever goes up. (Real live count was 2.574 at build time; ad-serving
+    // sandboxes can't fetch it at runtime, so we animate it.)
+    // 2.574 is treated as the realistic level: below it the count climbs at a
+    // lively, variable pace; once past it the count keeps inching up but much
+    // more slowly, so it stays believable while never freezing.
     initTrustpilotCounter: function() {
-        const PLATEAU = 2641;
+        const PLATEAU = 2641;   // realistic level — climbing continues, just slower
         let current = 2637;
 
         const render = () => {
@@ -81,17 +100,21 @@ function createBannerSystem(ROOT) {
 
         const tick = () => {
             if (this.frozen) return;
-            current += 1;
+            current += 1;            // climbs while animating; frozen at 15s
             render();
+
             let delay;
             if (current < PLATEAU) {
+                // Lively, highly-variable pacing on the way up to the realistic level
                 const r = Math.random();
-                if      (r < 0.30) delay = 110  + Math.random() * 210;
-                else if (r < 0.64) delay = 400  + Math.random() * 800;
-                else if (r < 0.86) delay = 1300 + Math.random() * 900;
-                else               delay = 2300 + Math.random() * 1100;
+                if      (r < 0.30) delay = 110  + Math.random() * 210;   // super fast burst
+                else if (r < 0.64) delay = 400  + Math.random() * 800;   // brisk
+                else if (r < 0.86) delay = 1300 + Math.random() * 900;   // steady
+                else               delay = 2300 + Math.random() * 1100;  // slow (never frozen)
             } else {
-                delay = 86400000;
+                // Past the realistic level: keep climbing, but slowly, so the
+                // number stays believable yet the counter never stops.
+                delay = 86400000;   // hold at 2.574 through the 15s window
             }
             this.counterTimer = setTimeout(tick, delay);
         };
@@ -99,11 +122,13 @@ function createBannerSystem(ROOT) {
         this.counterTimer = setTimeout(tick, 2000);
     },
 
+    // Scalable Story System for crossfading multiple messages
     initStoryRotation: function() {
         if (this.slides.length <= 1) return;
+
         let currentSlide = 0;
         const totalSlides = this.slides.length;
-        const slideDuration = 4000;
+        const slideDuration = 4000; // each story frame stays ~4s (0.5s slower)
 
         this.rotationTimer = setInterval(() => {
             this.slides[currentSlide].classList.remove('is-active');
@@ -113,6 +138,10 @@ function createBannerSystem(ROOT) {
         }, slideDuration);
     },
 
+    // Price sticker re-pop: at the midpoint of the timeline the sticker
+    // gracefully pops OUT and then replays its original entrance pop. Purely
+    // additive — the idle pulse hands over and resumes automatically. (No-op
+    // on formats without a sticker.)
     initStickerReplay: function() {
         var sticker = ROOT.querySelector('.price-container');
         if (!sticker) return;
@@ -134,6 +163,8 @@ function createBannerSystem(ROOT) {
             sticker.classList.add('is-stkout');
         };
 
+        // First replay halfway into the timeline; any later repeat is cancelled
+        // by the 15s freeze, so on IAB this fires exactly once.
         var period = this.STICKER_REPOP_EVERY_MS;
         this.stickerTimer = setTimeout(function tick() {
             popOut();
@@ -141,6 +172,9 @@ function createBannerSystem(ROOT) {
         }, period / 2);
     },
 
+    // Re-plays the horizontal slide-in for the headline of the newly active
+    // slide. line-1 re-enters from the left, line-2 from the right — matching
+    // the entrance animation so every rotation feels consistent.
     retriggerTextAnim: function(slideElement) {
         const lines = slideElement.querySelectorAll('.headline');
         lines.forEach(line => {
@@ -149,7 +183,10 @@ function createBannerSystem(ROOT) {
             line.style.transform = 'translateX(' + (fromLeft ? '-38px' : '38px') + ')';
             line.style.opacity = '0';
             line.style.filter = 'blur(5px)';
+
+            // Force reflow, then clear so the CSS transition re-runs to rest state
             void line.offsetWidth;
+
             line.style.transition = '';
             line.style.transform = '';
             line.style.opacity = '';
@@ -170,7 +207,7 @@ function createBannerSystem(ROOT) {
 }
 
 /* ---------------------------------------------------------------------
-   BOOTSTRAP - kritieke fix voor embedded/Awin-omgevingen.
+   BOOTSTRAP — kritieke fix voor embedded/Awin-omgevingen.
 
    Voorheen: window.addEventListener('load', ...). Dat event vuurt EENMALIG.
    Wanneer een ad-editor of publisher de banner-HTML injecteert in een

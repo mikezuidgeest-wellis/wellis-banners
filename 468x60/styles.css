@@ -1,0 +1,102 @@
+/* ===== Brand font (self-hosted Gordita) ===== */
+@font-face { font-family:"Gordita"; src:url("../assets/fonts/Gordita-Regular.woff2") format("woff2"); font-weight:400; font-display:swap; }
+@font-face { font-family:"Gordita"; src:url("../assets/fonts/Gordita-Medium.woff2") format("woff2"); font-weight:500; font-display:swap; }
+@font-face { font-family:"Gordita"; src:url("../assets/fonts/Gordita-Bold.woff2") format("woff2"); font-weight:700; font-display:swap; }
+
+:root{--brand-teal:#004851;--brand-beige:#F4E2B4;--text-white:#FFFFFF;
+  --ease-premium:cubic-bezier(0.16,1,0.3,1);--ease-elastic:cubic-bezier(0.34,1.56,0.64,1);}
+
+/* ===== CSS-ISOLATIE =====================================================
+   De originele stylesheet gebruikte een globale `*{}`-selector. Die lekte naar
+   de publisher-pagina en bood geen bescherming tegen publisher-CSS die op onze
+   elementen terugkomt. Gemeten effect zonder deze fix: CTA werd 160x39 i.p.v.
+   156x32 en de hero-afbeelding klapte van 300x73 naar 300x300.
+   Alles staat nu strikt gescoped op .ad-container. */
+.ad-container,
+.ad-container *,
+.ad-container *::before,
+.ad-container *::after{
+  box-sizing:border-box!important;margin:0;padding:0;border:0;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  font-family:inherit;font-size:inherit;line-height:inherit;letter-spacing:inherit;
+  /* GEEN !important op typografie: .ad-container * (0,1,0) verslaat een
+     publisher-selector als span (0,0,1) al op specificiteit. Met !important
+     zou de reset de EIGEN tracking van het ontwerp overschrijven. */
+  text-transform:none;text-indent:0;text-align:inherit;vertical-align:baseline;
+  float:none;clear:none;min-width:0;min-height:0;max-width:none;max-height:none;
+  background:none;box-shadow:none;text-shadow:none;list-style:none;
+  transform-origin:50% 50%;
+}
+/* !important is hier noodzakelijk: publishers zetten standaard
+   img{max-width:100%!important;height:auto!important}. */
+.ad-container img{max-width:none!important;max-height:none!important;display:block!important;
+  border:0!important;vertical-align:baseline!important;float:none!important;
+  padding:0!important;margin:0!important;}
+/* Basistypografie vastzetten. Zonder deze regel erft .ad-container de
+   font-size en line-height van de publisher-body (gemeten: CTA werd 42px hoog
+   i.p.v. 32px en de Trustpilot-regel liep buiten zijn vak). De eigen regels van
+   het ontwerp staan hierna en overschrijven waar nodig. */
+.ad-container{font-size:16px;line-height:1.1;letter-spacing:normal;text-align:left;
+  font-style:normal;font-variant:normal;word-spacing:normal;text-decoration:none;
+  direction:ltr;unicode-bidi:normal;white-space:normal;}
+
+
+.ad-container{position:relative;display:block;width:468px;height:60px;background:var(--brand-teal);overflow:hidden;cursor:pointer;text-decoration:none;
+  font-family:"Gordita",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;}
+.ad-container .bg-color{position:absolute;inset:0;background:var(--brand-teal);z-index:1;}
+
+.ad-container .story-system{position:absolute;inset:0;z-index:2;}
+.ad-container .slide{position:absolute;inset:0;opacity:0;visibility:hidden;transition:opacity .8s var(--ease-premium);}
+.ad-container .slide.is-active{opacity:1;visibility:visible;}
+
+/* Photo right (x346-468 → 122px) */
+.ad-container .hero-container{position:absolute;top:0;right:0;width:122px;height:60px;overflow:hidden;}
+.ad-container .hero-image-wrapper{width:100%!important;height:100%!important;opacity:0;transform:translateX(-16px) scale(1.08);transform-origin:center center;will-change:transform,opacity;}
+.ad-container .hero-image{width:100%!important;height:100%!important;object-fit:cover;}
+
+/* Headline (x141-328, two lines, medium) */
+.ad-container .headline-container{position:absolute;left:131px;top:30.0px;width:188px;z-index:4;transform:translateY(-50%)}
+.ad-container .mask-reveal{overflow:visible;}
+.ad-container .headline{display:block;color:var(--text-white);font-weight:500;font-size:17.15px;line-height:1.1;letter-spacing:-0.01em;opacity:0;filter:blur(4px);will-change:transform,opacity;transform:translateX(-22px);}
+/* Logo (left16, ~91x29) */
+.ad-container .logo-container{position:absolute;left:16px;top:15px;z-index:5;opacity:0;transform:translateY(4px);}
+.ad-container .logo-image{width:91px!important;height:auto!important;display:block;pointer-events:auto;transform-origin:center center;transition:transform .3s var(--ease-premium);}
+.ad-container .logo-image:hover{transform:scale(1.05);}
+
+/* Arrow circle CTA over the photo (right side) */
+.ad-container .cta-container{position:absolute;right:102px;top:10px;z-index:6;}
+.ad-container .cta-button{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;
+  background:var(--brand-beige);color:var(--brand-teal);border:none;position:relative;overflow:hidden;
+  opacity:0;transform:scale(.6);cursor:pointer;transition:transform .4s var(--ease-elastic),box-shadow .35s ease,background-color .35s ease;}
+.ad-container .cta-arrow{font-size:24px;font-weight:700;line-height:1;transform:translateX(1px);transition:transform .35s var(--ease-premium);}
+.ad-container .cta-chev{display:block;height:.7em;width:auto;}
+.ad-container .cta-shine{position:absolute;top:0;left:-130%;width:70%;height:100%;
+  background:linear-gradient(to right,rgba(255,255,255,0) 0%,rgba(255,255,255,.5) 50%,rgba(255,255,255,0) 100%);
+  transform:skewX(-25deg);transition:left .6s ease;pointer-events:none;}
+.ad-container:hover .cta-button{background:#FFE9B8;box-shadow:0 5px 12px rgba(0,0,0,.22);transform:scale(1.06);}
+.ad-container:hover .cta-arrow{transform:translateX(4px);}
+.ad-container:hover .cta-shine{left:150%;}
+
+/* ===== Entrance ===== */
+.ad-container.is-loaded .hero-image-wrapper{transition:transform 1.2s var(--ease-premium),opacity .8s ease;transition-delay:.1s;opacity:1;transform:translateX(0) scale(1);}
+.ad-container.is-loaded .logo-container{transition:opacity .6s ease,transform .6s var(--ease-premium);transition-delay:.25s;opacity:1;transform:translateY(0);}
+.ad-container.is-loaded .headline{transition:transform .85s var(--ease-premium),opacity .7s ease,filter .7s ease;transition-delay:.2s;opacity:1;transform:translateX(0);filter:blur(0);}
+.ad-container.is-loaded .cta-button{transition:transform .55s var(--ease-elastic),opacity .4s ease;transition-delay:.7s;opacity:1;transform:scale(1);}
+
+.ad-container.is-settled .slide.is-active .hero-image-wrapper{animation:photoZoomIn 11s ease-out forwards;}
+@keyframes photoZoomIn{from{transform:scale(1);}to{transform:scale(1.10);}}
+.ad-container.is-settled .cta-shine{animation:ctaSweep 4.8s ease-in-out 1.2s infinite;}
+.ad-container:hover .cta-shine{animation:none;}
+@keyframes ctaSweep{0%,72%{left:-130%;}88%{left:150%;}100%{left:150%;}}
+
+.ad-container.is-frozen .price-container,
+.ad-container.is-frozen .cta-shine{animation:none!important;}
+.ad-container.is-frozen .hero-image-wrapper{animation-play-state:paused!important;}
+
+@media (prefers-reduced-motion: reduce){
+  .ad-container *{animation:none!important;transition:none!important;}
+  .ad-container .hero-image-wrapper{opacity:1;transform:none;}
+  .ad-container .logo-container,
+.ad-container .headline,
+.ad-container .cta-button{opacity:1!important;transform:none!important;filter:none!important;}
+}
