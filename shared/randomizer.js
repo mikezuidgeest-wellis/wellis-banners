@@ -27,19 +27,30 @@
   }
   function pick(arr, n) { return shuffle(arr || []).slice(0, n); }
 
-  /* Asset-base: in een embedded/Awin-context staat de banner-HTML op het
-     domein van de PUBLISHER, niet op onze CDN. Relatieve bestandsnamen uit
-     banner-data.js zouden dan 404'en. De host-pagina zet daarom
-     window.WELLIS_ASSET_BASE naar de absolute CDN-map.
-     Leeg gelaten (standalone/preview) -> gedrag blijft exact relatief.
-     Bewust GEEN <base href>: dat zou ook alle links van de publisher-pagina
-     herschrijven en is dus onveilig in een geinjecteerde omgeving. */
+  /* Asset-base: de banner-HTML staat in een Awin-creatie niet op onze CDN, dus
+     relatieve bestandsnamen uit banner-data.js zouden 404'en.
+
+     Drie bronnen, in deze volgorde:
+       1. data-asset-base op .ad-container (of op <html>)
+       2. window.WELLIS_ASSET_BASE
+       3. leeg -> relatief, zoals in de losse preview
+
+     Bron 1 bestaat omdat advertentieplatforms inline <script> routineus
+     strippen. Zodra dat gebeurt is window.WELLIS_ASSET_BASE nooit gezet en
+     verdwijnen alle foto's, terwijl de rest van de banner er wel staat: een
+     halve creatie, en moeilijk te herkennen als oorzaak. Een data-attribuut
+     is gewone markup en overleeft elke sanitizer die HTML doorlaat. */
+  function assetBase() {
+    var el = document.querySelector("[data-asset-base]");
+    var uit = (el && el.getAttribute("data-asset-base")) || window.WELLIS_ASSET_BASE || "";
+    if (uit && uit.charAt(uit.length - 1) !== "/") uit += "/";
+    return uit;
+  }
+
   function assetURL(file) {
     if (!file) return file;
     if (/^(?:[a-z]+:)?\/\//i.test(file) || file.charAt(0) === "/") return file; // al absoluut
-    var base = window.WELLIS_ASSET_BASE || "";
-    if (base && base.charAt(base.length - 1) !== "/") base += "/";
-    return base + file;
+    return assetBase() + file;
   }
 
   /* Lazy image assignment — src is set ONLY after selection, so the

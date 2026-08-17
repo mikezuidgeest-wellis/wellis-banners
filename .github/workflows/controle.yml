@@ -55,6 +55,10 @@ jobs:
         working-directory: test
         run: node valideer-css.js
 
+      - name: Valideer de Awin-snippets
+        working-directory: test
+        run: node valideer-snippets.js
+
       - name: Browsercompatibiliteit van de CSS
         working-directory: test
         run: npm run css-compat

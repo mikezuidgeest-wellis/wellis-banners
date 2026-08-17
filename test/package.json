@@ -11,7 +11,8 @@
     "vastleggen": "playwright test --update-snapshots",
     "rapport": "playwright show-report",
     "css-compat": "doiuse --browsers \"> 0.2%, last 3 versions, Safari >= 12, iOS >= 12, Firefox ESR, Samsung >= 11, not dead, not op_mini all\" ../*/styles.css",
-    "css-lint": "node valideer-css.js"
+    "css-lint": "node valideer-css.js",
+    "snippet-lint": "node valideer-snippets.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",

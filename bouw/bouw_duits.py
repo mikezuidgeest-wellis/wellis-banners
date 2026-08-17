@@ -58,17 +58,28 @@ def duitse_body(bron_html):
     return body
 
 
-def scripts(absolut=True):
-    basis = CDN + "/assets/"
+def scripts():
+    """Alleen externe scripts. Geen inline <script>.
+
+    Taal en asset-base gaan via data-attributen op .ad-container, die
+    _i18n.js en randomizer.js zelf uitlezen. Reden: advertentieplatforms
+    strippen inline script routineus. Verdween window.LANG, dan bleef de
+    Duitse creatie stil in het Nederlands staan - geen foutmelding, alleen
+    verkeerde taal, en dat is precies het soort fout dat je pas laat ziet."""
     shared = CDN + "/shared/"
     regels = [
-        '<script>window.LANG = "de"; window.WELLIS_ASSET_BASE = "%s";</scr' % basis + 'ipt>',
         '<script src="%sbanner-data.js"></scr' % shared + 'ipt>',
         '<script src="%s_i18n.js"></scr' % shared + 'ipt>',
         '<script src="%srandomizer.js"></scr' % shared + 'ipt>',
         '<script src="%sscript.js"></scr' % shared + 'ipt>',
     ]
     return "\n".join(regels)
+
+
+def met_data_attributen(body):
+    """Zet taal en asset-base als markup op de container."""
+    return body.replace('<div id="ad-container"',
+                        '<div id="ad-container" data-asset-base="%s/assets/" data-lang="de"' % CDN, 1)
 
 
 def bouw_pagina(body, formaat):
@@ -78,16 +89,25 @@ def bouw_pagina(body, formaat):
             '<title>GetWellis DE - %s</title>\n'
             '<meta name="ad.size" content="width=%s,height=%s">\n'
             '<link rel="stylesheet" href="%s/%s/styles.css">\n</head>\n<body>\n%s\n%s\n</body>\n</html>\n'
-            ) % (formaat, b, h, CDN, formaat, body, scripts())
+            ) % (formaat, b, h, CDN, formaat, met_data_attributen(body), scripts())
 
 
 def bouw_snippet(body, formaat):
-    return ("<!-- GetWellis Awin HTML5 %s (DE) - plak dit volledig in het HTML-veld.\n"
-            "     Taal wordt gezet via window.LANG voor de scripts laden.\n"
-            "     Prijs, koppen, CTA en Trustpilot-tekst komen uit shared/_i18n.js.\n"
-            "     Geen <base href>: die zou ook de links van de publisher herschrijven. -->\n"
-            '<link rel="stylesheet" href="%s/%s/styles.css">\n%s\n%s\n'
-            ) % (formaat, CDN, formaat, body, scripts())
+    """Volledig HTML-document, want Awin serveert de creatie in een eigen
+    iframe en houdt die vorm zelf aan, inclusief ad.size en base href.
+
+    De base-tag is hier niet dragend: elke src en href is ook absoluut. Valt
+    de tag weg door een sanitizer, dan werkt alles nog. Een snippet dat wel
+    op base leunde had zonder die tag 5 van de 5 afbeeldingen stuk."""
+    b, h = formaat.split("x")
+    return ('<!DOCTYPE html>\n<html lang="de">\n<head>\n<meta charset="utf-8">\n'
+            '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
+            '<title>GetWellis DE - %s</title>\n'
+            '<meta name="ad.size" content="width=%s,height=%s">\n'
+            '<base href="%s/%s/">\n'
+            '<link rel="stylesheet" href="%s/%s/styles.css">\n</head>\n<body>\n%s\n%s\n</body>\n</html>\n'
+            ) % (formaat, b, h, CDN, formaat, CDN, formaat,
+                 met_data_attributen(body), scripts())
 
 
 def main():

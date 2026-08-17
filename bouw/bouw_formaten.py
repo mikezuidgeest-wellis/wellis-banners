@@ -293,21 +293,41 @@ def bouw_index(bron_html, formaat, awin=False):
     body = re.sub(r'src="(?!https?://)([^"/][^"]*\.(?:svg|webp|png|jpg))"',
                   lambda m: 'src="' + basis + m.group(1) + '"', body)
 
+    # GEEN inline <script> meer. De asset-base gaat via een data-attribuut op
+    # .ad-container, dat randomizer.js zelf uitleest. Advertentieplatforms
+    # strippen inline script routineus; gebeurde dat, dan was
+    # window.WELLIS_ASSET_BASE nooit gezet en verdwenen alle foto's terwijl de
+    # rest van de banner er wel stond.
+    body = body.replace('<div id="ad-container"',
+                        '<div id="ad-container" data-asset-base="%s" data-lang="nl"' % basis, 1)
+
     scripts = ("\n".join([
-        '<script>window.WELLIS_ASSET_BASE = "%s";<\/script>' % basis,
         '<script src="%sbanner-data.js"><\/script>' % shared,
         '<script src="%s_i18n.js"><\/script>' % shared,
         '<script src="%srandomizer.js"><\/script>' % shared,
         '<script src="%sscript.js"><\/script>' % shared,
     ])).replace("<\\/script>", "</script>")
 
-    if awin:
-        return ("<!-- GetWellis Awin HTML5 %s (NL) - plak dit volledig in het HTML-veld.\n"
-                "     Assets komen van GitHub Pages. Geen <base href>: die zou ook de\n"
-                "     relatieve links van de publisher-pagina herschrijven. -->\n"
-                '<link rel="stylesheet" href="%s">\n%s\n%s\n') % (formaat, css_href, body, scripts)
-
     breedte, hoogte = formaat.split("x")
+
+    if awin:
+        # Awin serveert de creatie als een EIGEN document in een iframe, niet
+        # geinjecteerd in de publisher-DOM. Daarom een volledig document met
+        # ad.size: dat is de vorm die Awin zelf aanhoudt en valideert.
+        #
+        # <base href> staat erin omdat het in een iframe veilig is en Awin het
+        # zo genereert. Het is hier echter NIET dragend: elke src en href is
+        # ook absoluut. Valt de base-tag weg door een sanitizer, dan blijft
+        # alles werken. Gemeten met een base-loze variant: 0 van de afbeeldingen
+        # kapot, tegen 5 van de 5 bij een snippet die wel op base leunde.
+        return ('<!DOCTYPE html>\n<html lang="nl">\n<head>\n<meta charset="utf-8">\n'
+                '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
+                '<title>GetWellis - %s</title>\n'
+                '<meta name="ad.size" content="width=%s,height=%s">\n'
+                '<base href="%s/%s/">\n'
+                '<link rel="stylesheet" href="%s">\n</head>\n<body>\n%s\n%s\n</body>\n</html>\n'
+                ) % (formaat, breedte, hoogte, CDN, formaat, css_href, body, scripts)
+
     return ('<!DOCTYPE html>\n<html lang="nl">\n<head>\n<meta charset="utf-8">\n'
             '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
             '<title>GetWellis - %s</title>\n'

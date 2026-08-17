@@ -22,7 +22,14 @@ REPO = os.path.dirname(HIER)
 BUILD = os.path.join(REPO, ".build")
 
 # Precies de paden die gepubliceerd worden. Alles daarbuiten blijft ongemoeid.
-GEPUBLICEERD = ["shared", "assets"]
+#
+# _AWIN_SNIPPETS hoort er expliciet bij. Dat is de code die daadwerkelijk in de
+# Awin-editor geplakt wordt, en die stond eerder alleen in .build/ - dus buiten
+# versiebeheer. Gevolg in de praktijk: er werd een oude, losse kopie geplakt met
+# een <base href> en relatieve afbeeldingspaden. Zodra die base-tag wegviel
+# waren alle vijf de afbeeldingen stuk. Het te plakken artefact hoort in de
+# repo, net als al het andere.
+GEPUBLICEERD = ["shared", "assets", "_AWIN_SNIPPETS"]
 
 
 def formaatmappen(pad):
@@ -69,6 +76,10 @@ def main():
 
     for f in formaatmappen(os.path.join(de, "de")):
         kopieer(os.path.join(de, "de", f), os.path.join(REPO, "de", f), telling)
+
+    snip_de = os.path.join(de, "_AWIN_SNIPPETS_DE")
+    if os.path.isdir(snip_de):
+        kopieer(snip_de, os.path.join(REPO, "_AWIN_SNIPPETS_DE"), telling)
 
     print("ongewijzigd : %d bestanden" % telling["gelijk"])
     print("nieuw       : %d" % len(telling["nieuw"]))

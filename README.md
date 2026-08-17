@@ -25,7 +25,8 @@ teruggedraaid. De GitHub Action controleert daarop en zet de build op rood.
 | `<formaat>/` | Gegenereerd, Nederlands. 16 mappen. | ja, want Pages serveert dit |
 | `de/<formaat>/` | Gegenereerd, Duits. 16 mappen. | ja |
 | `shared/`, `assets/` | Gegenereerd. De JavaScript en de afbeeldingen die alle banners delen. | ja |
-| `_AWIN_SNIPPETS/` | Gegenereerd. De HTML om in de Awin-editor te plakken. | nee, staat in `.build/` |
+| `_AWIN_SNIPPETS/` | Gegenereerd. De HTML om in de Awin-editor te plakken, Nederlands. | ja |
+| `_AWIN_SNIPPETS_DE/` | Idem, Duits. | ja |
 | `.build/` | Tussenstap van de bouw. | nee, genegeerd |
 
 Dat de gegenereerde bestanden meegaan in git is met opzet: GitHub Pages serveert
@@ -76,26 +77,59 @@ cd test
 npm install          # eenmalig, installeert de drie browserengines (~400 MB)
 npm test             # alles
 npm run safari       # alleen de Safari/iOS-engine
-npm run css-lint     # syntaxvalidatie van elke CSS-declaratie
-npm run css-compat   # browsercompatibiliteit van de CSS
+npm run css-lint      # syntaxvalidatie van elke CSS-declaratie
+npm run css-compat    # browsercompatibiliteit van de CSS
+npm run snippet-lint  # vorm en URL's van de 32 Awin-snippets
 ```
 
 Volledige uitleg in [`docs/TESTEN.md`](docs/TESTEN.md).
 
 ## Awin
 
-Awin accepteert geen zip, alleen geplakte HTML5. Daarom staan alle assets extern
-op Pages en bevat het snippet alleen markup plus absolute URL's. De snippets
-komen na een bouw in `.build/nl/_AWIN_SNIPPETS/` en `.build/de/_AWIN_SNIPPETS_DE/`.
+Awin accepteert geen zip, alleen geplakte HTML5. De code die je plakt staat in
+`_AWIN_SNIPPETS/<formaat>.html` (Nederlands) en `_AWIN_SNIPPETS_DE/<formaat>.html`
+(Duits). Die bestanden staan in de repo en worden bij elke bouw opnieuw
+gegenereerd — pas ze niet met de hand aan.
 
-Twee dingen die niet vanzelf spreken en waar eerder fouten uit voortkwamen:
+Elk snippet is een **volledig HTML-document**: DOCTYPE, `<html lang>`, een head
+met `<meta charset>`, `<title>`, `<meta name="ad.size">` en `<base href>`, en
+dan de banner. Dat is de vorm die Awin zelf aanhoudt, want Awin serveert de
+creatie als een eigen document in een iframe — niet geïnjecteerd in de
+publisher-pagina.
 
-- **Geen `<base href>`.** Dat zou ook de relatieve links van de publisher
-  herschrijven. Alle URL's in de snippets zijn daarom absoluut.
-- **De banner wordt geïnjecteerd in een al geladen pagina**, dus `window.load`
-  is dan allang gevallen. `script.js` controleert `document.readyState` en start
-  meteen als de pagina al klaar is. Zonder die controle bleef de prijssticker
-  hangen op `scale(.6) rotate(-15deg)`.
+Vier dingen zijn niet vanzelfsprekend en komen alle vier uit een storing:
+
+**De `<base href>` is niet dragend.** Hij staat erin omdat Awin het zo
+genereert en het in een iframe veilig is, maar elke `src` en `href` in het
+snippet is óók absoluut. Valt de base-tag weg door een sanitizer, dan werkt
+alles nog. Een eerdere snippet leunde er wél op: zonder die tag waren 5 van de
+5 afbeeldingen stuk — logo, prijssticker, hero-foto, Trustpilot-logo en de
+sterren. Een lege teal doos met alleen tekst.
+
+**Geen inline `<script>`.** Advertentieplatforms strippen die routineus. De
+asset-base en de taal staan daarom als markup op de container:
+
+```html
+<div id="ad-container" data-asset-base="…/assets/" data-lang="nl">
+```
+
+`randomizer.js` en `_i18n.js` lezen die attributen zelf uit. Werd de inline
+variant gestript, dan verdwenen alle foto's (NL) of bleef de Duitse creatie
+stil in het Nederlands staan — geen foutmelding, alleen verkeerde taal.
+
+**`<meta name="ad.size">` moet erin.** Awin en de IAB-validators gebruiken het
+om de creatie te plaatsen.
+
+**Alle scripts komen uit `shared/`, niet uit `<formaat>/`.** Er staan nog oude
+kopieën van `script.js` en `randomizer.js` in de formaatmappen, over van de
+eerste upload. Die zijn verouderd — `PLATEAU` staat er nog op 2641 in plaats
+van 2720. Verwijs er nooit naar.
+
+`test/valideer-snippets.js` dwingt dit alles af en draait mee in de CI:
+
+```bash
+cd test && npm run snippet-lint
+```
 
 ## `.nojekyll`
 

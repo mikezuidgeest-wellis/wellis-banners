@@ -76,9 +76,21 @@
     "Professionelle Betreuung. Auf dem Weg zu deinen Zielen.": "Auf dem Weg zu deinen Zielen."
   };
 
+  /* Taal uit vier bronnen, in deze volgorde:
+       1. ?lang= in de URL            (preview-toggle)
+       2. data-lang op een element    (Awin-snippet; overleeft sanitizers)
+       3. window.LANG                 (inline script, kan gestript worden)
+       4. lang-attribuut op <html>
+     Bron 2 is toegevoegd nadat bleek dat een advertentieplatform inline
+     <script> kan weghalen. Viel window.LANG weg, dan bleef de Duitse creatie
+     stil in het Nederlands staan - geen foutmelding, alleen verkeerde taal. */
   function getLang() {
     try { var p = new URLSearchParams(location.search); if (p.get("lang")) return p.get("lang"); } catch (e) {}
-    return window.LANG || "nl";
+    var el = document.querySelector("[data-lang]");
+    if (el && el.getAttribute("data-lang")) return el.getAttribute("data-lang");
+    if (window.LANG) return window.LANG;
+    var h = document.documentElement.getAttribute("lang");
+    return (h && h.slice(0, 2)) || "nl";
   }
   if (getLang() !== "de") return;   // nl (default) -> geen wijziging
   window.SHORT_HEAD_DE = SHORT_DE;  // beschikbaar voor de randomizer (2-regel-cap)
