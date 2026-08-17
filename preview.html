@@ -66,32 +66,9 @@ function bouwVakken(){
   FORMATEN.forEach(function(f){
     var d = f.split("x");
     h += '<div class="vak"><h3>' + f + '</h3><iframe id="f_' + f + '" width="' +
-         (parseInt(d[0]) + 24) + '" height="' + (parseInt(d[1]) + 200) + '" scrolling="no"></iframe></div>';
+         (parseInt(d[0]) + 20) + '" height="' + (parseInt(d[1]) + 20) + '" scrolling="no"></iframe></div>';
   });
   document.getElementById("banners").innerHTML = h;
-}
-
-/* Het iframe moet zich naar de INHOUD voegen, niet andersom. De publisher-tekst
-   boven de banner duwt hem omlaag (gemeten: 68px, bij smalle formaten 101px),
-   waardoor een iframe van hoogte+20 de onderkant van elke banner afkapte -
-   inclusief de Trustpilot-balk en de CTA. We wachten tot alle afbeeldingen
-   geladen zijn en zetten het iframe daarna exact op de documenthoogte. */
-function pasAan(fr, d){
-  var pogingen = 0;
-  (function probeer(){
-    var ad = d.querySelector('.ad-container');
-    var klaar = ad && [].slice.call(ad.querySelectorAll('img'))
-                        .every(function(i){ return i.complete && i.naturalWidth > 0; });
-    if (!klaar && pogingen++ < 40) { setTimeout(probeer, 150); return; }
-    if (!ad) { fr.style.height = (d.documentElement.scrollHeight + 4) + 'px'; return; }
-    /* Meten vanaf de banner zelf, niet vanaf scrollHeight: het html-element vult
-       altijd de viewport van het iframe, waardoor scrollHeight nooit kleiner
-       wordt dan de starthoogte en er 130px lege ruimte bleef staan. */
-    var r = ad.getBoundingClientRect();
-    fr.style.height = (Math.ceil(r.bottom) + 12) + 'px';
-    var nodig = Math.ceil(r.right) + 12;
-    if (nodig > fr.clientWidth) fr.style.width = nodig + 'px';
-  })();
 }
 
 function vul(f){
@@ -114,12 +91,11 @@ function vul(f){
     fetch(CDN + "/" + f + "/index.html?t=" + Date.now()).then(function(r){ return r.text(); }).then(function(html){
       var body = html.split(/<body[^>]*>/i)[1].split(/<\/body>/i)[0];
       body = body.replace(/<script[\s\S]*?<\/script>/gi, "");
-      body = body.replace(/(src|href)="\.\.\/assets\//g, '$1="' + CDN + '/assets/');
       d.body.insertAdjacentHTML("beforeend", "<p>Publisher-tekst.</p>" + body);
       var bronnen = [CDN+"/shared/banner-data.js", CDN+"/shared/_i18n.js",
                      CDN+"/shared/randomizer.js", CDN+"/shared/script.js"];
       (function volgende(i){
-        if (i >= bronnen.length) { w.__klaar = true; pasAan(fr, d); return; }
+        if (i >= bronnen.length) { w.__klaar = true; return; }
         var s = d.createElement("script");
         s.src = bronnen[i] + "?t=" + Date.now();
         s.onload = function(){ volgende(i+1); };
@@ -135,9 +111,6 @@ function meet(f){
   try{
     var d = fr.contentDocument, w = fr.contentWindow;
     var ad = d && d.querySelector(".ad-container");
-    if (ad) { var nietKlaar = [].slice.call(ad.querySelectorAll("img"))
-      .filter(function(i){ return !(i.complete && i.naturalWidth > 0); });
-      if (nietKlaar.length) return { fout: nietKlaar.length + " afbeelding(en) nog niet geladen" }; }
     if (!ad) return { fout: "geen banner" };
     var pauze = d.getElementById("gw-meet");
     if (!pauze){ pauze = d.createElement("style"); pauze.id = "gw-meet";
