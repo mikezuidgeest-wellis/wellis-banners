@@ -45,8 +45,17 @@ for (const map of MAPPEN) {
     // <base href> MAG, want Awin genereert het zo en in een iframe is het
     // veilig. Maar het mag niet DRAGEND zijn: de check op absolute URLs
     // hieronder dwingt af dat de banner ook zonder de tag werkt.
-    if (!/<meta name="ad\.size" content="width=\d+,height=\d+">/.test(code)) {
-      fouten.push(`${naam}: <meta name="ad.size"> ontbreekt`);
+    // ad.size en base href moeten bij DIT formaat horen, niet bij een ander.
+    // Een generieke check op "staat er een ad.size" laat een kopieerfout door,
+    // en dan plaatst Awin de creatie in het verkeerde slot.
+    const [B, H] = b.replace('.html', '').split('x');
+    if (!code.includes(`<meta name="ad.size" content="width=${B},height=${H}">`)) {
+      const gevonden = (code.match(/content="width=\d+,height=\d+"/) || ['ontbreekt'])[0];
+      fouten.push(`${naam}: ad.size moet width=${B},height=${H} zijn, gevonden: ${gevonden}`);
+    }
+    const base = (code.match(/<base href="([^"]+)"/) || [])[1];
+    if (base && base !== `${CDN}${B}x${H}/`) {
+      fouten.push(`${naam}: base href wijst naar ${base} i.p.v. ${CDN}${B}x${H}/`);
     }
     if (/<script(?![^>]*\bsrc=)[^>]*>/i.test(code)) {
       fouten.push(`${naam}: bevat inline <script> - platforms strippen die`);
