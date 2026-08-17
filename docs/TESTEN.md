@@ -61,7 +61,10 @@ BASE=http://127.0.0.1:8899/ npm test
    14.1 kent de engine `inset` niet; zonder de longhand-fallback wordt deze laag
    0x0 en verdwijnen de achtergrond en de hero-foto
 7. De randomizer heeft echt een kop en een foto gezet
-8. Pixelvergelijking met het referentiebeeld van diezelfde engine
+8. Pixelvergelijking met het referentiebeeld van diezelfde engine.
+   **Alleen lokaal.** In GitHub Actions is de runner elke keer schoon, dus daar
+   bestaat nooit een referentiebeeld om tegen te vergelijken. De stap wordt
+   daar overgeslagen (`CI=true`); alle controles hierboven draaien wel.
 
 Plus twee gedragstests:
 

@@ -150,9 +150,15 @@ for (const taal of TALEN) {
         if (gevuld.foto) expect(gevuld.foto).toMatch(/\.(webp|png|jpg)/);
 
         // 8. Visuele regressie, per engine een eigen referentiebeeld.
-        await expect(page.locator('.ad-container')).toHaveScreenshot(
-          `${taal.code}-${formaat}.png`, { animations: 'disabled' }
-        );
+        //    Alleen lokaal. In CI is de runner elke keer schoon, dus daar
+        //    bestaat nooit een referentiebeeld: elke run zou eerst falen,
+        //    opnieuw draaien en de vergelijking alsnog niet uitvoeren. Puur
+        //    verloren tijd. De functionele controles hierboven draaien wel.
+        if (!process.env.CI) {
+          await expect(page.locator('.ad-container')).toHaveScreenshot(
+            `${taal.code}-${formaat}.png`, { animations: 'disabled' }
+          );
+        }
       });
     }
 

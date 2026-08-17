@@ -22,9 +22,11 @@ module.exports = defineConfig({
     toHaveScreenshot: { maxDiffPixelRatio: 0.02 },
   },
   reporter: [['html', { open: 'never' }], ['list']],
-  // 1 worker. De banners meten zichzelf op tijd (rotatie op 4s, bevriezen op
-  // 15s). Parallelle workers vertragen timers en geven vals-negatieven.
-  workers: 1,
+  // De banners meten zichzelf op tijd (rotatie op 4s, bevriezen op 15s), dus
+  // te veel workers vertraagt de timers en geeft vals-negatieven. Twee is op
+  // een 2-core runner gemeten veilig; lokaal 1 voor de zekerheid, omdat daar
+  // ook de pixelvergelijking draait.
+  workers: process.env.CI ? 2 : 1,
   use: {
     baseURL: process.env.BASE || 'https://mikezuidgeest-wellis.github.io/wellis-banners/',
     trace: 'retain-on-failure',

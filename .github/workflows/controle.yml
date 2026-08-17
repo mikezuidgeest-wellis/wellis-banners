@@ -95,9 +95,11 @@ jobs:
         working-directory: test
         env:
           BASE: http://127.0.0.1:8899/
-        # Op de eerste run bestaan de referentiebeelden nog niet. De
-        # functionele controles (maat, overflow, fouten, timing) draaien wel.
-        run: npx playwright test || npx playwright test
+          CI: 'true'
+        # Drie engines. De mobiele profielen (iphone, android) draaien lokaal;
+        # in CI verdrievoudigen ze de looptijd zonder een ander renderpad te
+        # raken, want ze gebruiken dezelfde WebKit- en Blink-engines.
+        run: npx playwright test --project=chromium --project=firefox --project=webkit
 
       - name: Bewaar het rapport
         if: always()
