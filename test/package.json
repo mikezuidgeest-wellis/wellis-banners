@@ -1,0 +1,21 @@
+{
+  "name": "wellis-banner-browsertest",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "postinstall": "playwright install chromium firefox webkit",
+    "test": "playwright test",
+    "safari": "playwright test --project=webkit",
+    "firefox": "playwright test --project=firefox",
+    "mobiel": "playwright test --project=iphone --project=android",
+    "vastleggen": "playwright test --update-snapshots",
+    "rapport": "playwright show-report",
+    "css-compat": "doiuse --browsers \"> 0.2%, last 3 versions, Safari >= 12, iOS >= 12, Firefox ESR, Samsung >= 11, not dead, not op_mini all\" ../*/styles.css",
+    "css-lint": "node valideer-css.js"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "doiuse": "^6.0.2",
+    "css-tree": "^3.1.0"
+  }
+}

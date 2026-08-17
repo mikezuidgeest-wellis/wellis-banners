@@ -1,0 +1,11 @@
+# Bouwresultaat. bouw/publiceer.py kopieert hieruit naar de repo-root;
+# de tussenstap zelf hoort niet in versiebeheer.
+.build/
+
+# Testartefacten
+test/node_modules/
+test/test-results/
+test/playwright-report/
+
+# macOS
+.DS_Store

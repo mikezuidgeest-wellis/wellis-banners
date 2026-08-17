@@ -1,0 +1,108 @@
+# Draait bij elke push en pull request naar main.
+#
+# Twee banen:
+#   1. bouwen   - herbouwt de set uit bron/ en controleert dat er NIETS
+#                 verandert. Wijkt het af, dan is er met de hand in een
+#                 gegenereerd bestand gewerkt in plaats van in bron/ of bouw/,
+#                 en zou de volgende herbouw dat stilletjes terugdraaien.
+#                 Valideert daarna elke CSS-declaratie.
+#   2. browsers - draait de bannerset door Blink, Gecko en WebKit.
+#
+name: Controle
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  bouwen:
+    name: Herbouw reproduceerbaar + CSS geldig
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Herbouw de volledige set uit bron/
+        run: python3 bouw/bouw_alles.py
+
+      - name: Controleer dat de herbouw niets verandert
+        run: |
+          if ! git diff --quiet -- . ':!.build'; then
+            echo "::error::De herbouw geeft een ander resultaat dan wat er in de repo staat."
+            echo "Dat betekent dat een gegenereerd bestand met de hand is aangepast."
+            echo "Pas bron/ of bouw/ aan en draai 'python3 bouw/bouw_alles.py'."
+            git diff --stat -- . ':!.build'
+            git diff -- . ':!.build' | head -100
+            exit 1
+          fi
+          echo "Herbouw is reproduceerbaar."
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Installeer testgereedschap
+        working-directory: test
+        run: npm install --no-audit --no-fund --ignore-scripts
+
+      - name: Valideer elke CSS-declaratie
+        working-directory: test
+        run: node valideer-css.js
+
+      - name: Browsercompatibiliteit van de CSS
+        working-directory: test
+        run: npm run css-compat
+
+  browsers:
+    name: Chrome, Firefox en Safari-engine
+    runs-on: ubuntu-latest
+    needs: bouwen
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Installeer Playwright met de drie engines
+        working-directory: test
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium firefox webkit
+
+      - name: Zet een lokale kopie klaar
+        # De Duitse pagina's verwijzen absoluut naar github.io. In CI willen we
+        # de VERSIE UIT DEZE COMMIT testen, niet wat er live staat. Daarom de
+        # basis-URL omschrijven naar de lokale server.
+        run: |
+          mkdir -p /tmp/site
+          rsync -a --exclude '.git' --exclude 'test' --exclude 'bron' \
+                   --exclude 'bouw' --exclude 'docs' --exclude '.build' ./ /tmp/site/
+          find /tmp/site -name '*.html' -exec \
+            sed -i 's#https://mikezuidgeest-wellis.github.io/wellis-banners/#/#g' {} +
+          nohup python3 -m http.server 8899 --directory /tmp/site > /dev/null 2>&1 &
+          for i in $(seq 1 20); do
+            curl -sf -o /dev/null http://127.0.0.1:8899/300x250/ && break || sleep 1
+          done
+
+      - name: Draai de tests
+        working-directory: test
+        env:
+          BASE: http://127.0.0.1:8899/
+        # Op de eerste run bestaan de referentiebeelden nog niet. De
+        # functionele controles (maat, overflow, fouten, timing) draaien wel.
+        run: npx playwright test || npx playwright test
+
+      - name: Bewaar het rapport
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-rapport
+          path: test/playwright-report/
+          retention-days: 14

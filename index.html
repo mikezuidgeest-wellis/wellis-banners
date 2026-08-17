@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GetWellis bannerset</title>
+<style>
+  :root { --teal:#004851; --beige:#F4E2B4; }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:48px 24px; background:#f6f7f8; color:#1a1a1a;
+         font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif; }
+  .wrap { max-width:760px; margin:0 auto; }
+  h1 { color:var(--teal); font-size:28px; margin:0 0 4px; }
+  p.sub { color:#5a6b6e; margin:0 0 36px; }
+  .kaarten { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; margin-bottom:40px; }
+  a.kaart { display:block; padding:20px 22px; background:#fff; border:1px solid #e2e6e7;
+            border-radius:10px; text-decoration:none; color:inherit; transition:border-color .15s, transform .15s; }
+  a.kaart:hover { border-color:var(--teal); transform:translateY(-2px); }
+  a.kaart strong { display:block; color:var(--teal); font-size:17px; margin-bottom:2px; }
+  a.kaart span { color:#5a6b6e; font-size:14px; }
+  h2 { font-size:15px; text-transform:uppercase; letter-spacing:.08em; color:#5a6b6e;
+       margin:0 0 12px; font-weight:600; }
+  .formaten { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:32px; }
+  .formaten a { padding:5px 11px; background:#fff; border:1px solid #e2e6e7; border-radius:6px;
+                font-size:13px; text-decoration:none; color:var(--teal); font-variant-numeric:tabular-nums; }
+  .formaten a:hover { border-color:var(--teal); }
+  footer { border-top:1px solid #e2e6e7; padding-top:20px; color:#8a9698; font-size:13px; }
+  code { background:#eceff0; padding:1px 5px; border-radius:4px; font-size:13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>GetWellis bannerset</h1>
+  <p class="sub">IAB-formaten voor Awin, gehost op GitHub Pages. Deze repo is de enige bron van waarheid.</p>
+
+  <div class="kaarten">
+    <a class="kaart" href="preview.html"><strong>Preview Nederlands</strong><span>Alle 16 formaten naast elkaar</span></a>
+    <a class="kaart" href="preview-de.html"><strong>Preview Duits</strong><span>Alle 16 formaten naast elkaar</span></a>
+  </div>
+
+  <h2>Nederlands</h2>
+  <div class="formaten" id="nl"></div>
+  <h2>Duits</h2>
+  <div class="formaten" id="de"></div>
+
+  <footer>
+    Wijzigen gaat via <code>bron/</code> of <code>bouw/</code>, daarna
+    <code>python3 bouw/bouw_alles.py</code>. Nooit rechtstreeks in een
+    gegenereerde map: de volgende herbouw draait dat terug.
+  </footer>
+</div>
+<script>
+  var FORMATEN = ['300x50','320x50','468x60','728x90','970x90','300x100','320x100',
+                  '200x200','250x250','300x200','300x250','320x240','336x280',
+                  '120x600','160x600','300x600'];
+  ['nl','de'].forEach(function (taal) {
+    var doel = document.getElementById(taal);
+    FORMATEN.forEach(function (f) {
+      var a = document.createElement('a');
+      a.href = (taal === 'de' ? 'de/' : '') + f + '/';
+      a.textContent = f;
+      doel.appendChild(a);
+    });
+  });
+</script>
+</body>
+</html>
