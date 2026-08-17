@@ -41,9 +41,9 @@
 
 .ad-container{position:relative;display:block;width:320px;height:240px;background:var(--brand-teal);overflow:hidden;cursor:pointer;text-decoration:none;
   font-family:"Gordita",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;}
-.ad-container .bg-color{position:absolute;inset:0;background:var(--brand-teal);z-index:1;}
-.ad-container .story-system{position:absolute;inset:0;z-index:2;}
-.ad-container .slide{position:absolute;inset:0;opacity:0;visibility:hidden;transition:opacity .8s var(--ease-premium);}
+.ad-container .bg-color{position:absolute;top:0;right:0;bottom:0;left:0;inset:0;background:var(--brand-teal);z-index:1;}
+.ad-container .story-system{position:absolute;top:0;right:0;bottom:0;left:0;inset:0;z-index:2;}
+.ad-container .slide{position:absolute;top:0;right:0;bottom:0;left:0;inset:0;opacity:0;visibility:hidden;transition:opacity .8s var(--ease-premium);}
 .ad-container .slide.is-active{opacity:1;visibility:visible;}
 /* Photo on the right (x188-336 → 148px, height to trustpilot) */
 .ad-container .hero-container{position:absolute;top:0;right:0;width:136px;height:240px;overflow:hidden;}
@@ -68,7 +68,7 @@
 .ad-container:hover .cta-shine{left:140%;}
 /* Sticker bottom-right of photo */
 .ad-container .price-container{position:absolute;top:124px;right:33px;width:78px;height:78px;z-index:10;opacity:0;transform:scale(.6) rotate(-15deg);pointer-events:none;filter:drop-shadow(0 4px 6px rgba(0,0,0,.18));}
-.ad-container .price-stamp-bg{position:absolute;inset:0;width:100%!important;height:100%!important;z-index:-1;}
+.ad-container .price-stamp-bg{position:absolute;top:0;right:0;bottom:0;left:0;inset:0;width:100%!important;height:100%!important;z-index:-1;}
 .ad-container .price-content{position:relative;display:block;width:100%;height:100%;color:var(--brand-teal);line-height:1;}
 .ad-container .price-content span{position:absolute;left:0;right:0;text-align:center;line-height:1;}
 .ad-container .price-sub{font-size:12.7px;font-weight:500;}
@@ -76,7 +76,7 @@
 .ad-container .price-main{font-size:19.5px;font-weight:700;letter-spacing:-.5px;top:30.2px;}
 .ad-container .price-content span:last-child{top:48.7px;}
 /* Trustpilot bar bottom (full width) */
-.ad-container .trust-container{position:absolute;bottom:0;left:0;right:0;height:20px;background:var(--text-white);display:flex;align-items:center;justify-content:center;gap:4px;z-index:11;opacity:0;transform:translateY(8px);}
+.ad-container .trust-container{position:absolute;bottom:0;left:0;right:0;height:20px;background:var(--text-white);display:flex;align-items:center;justify-content:center;z-index:11;opacity:0;transform:translateY(8px);}
 .ad-container .tp-logo{height:12px!important;position:relative;top:-1.55px;}
 .ad-container .tp-stars-mask{height:11px!important;width:0!important;overflow:hidden;position:relative;top:-0.2px;}
 .ad-container .tp-stars{height:11px!important;display:block;}
@@ -119,3 +119,7 @@
 .ad-container .trust-container,
 .ad-container .price-container,
 .ad-container .cta-button{opacity:1!important;transform:none!important;filter:none!important;}.ad-container .tp-stars-mask{width:61px!important;}}
+
+/* Vervanging van flex-gap: Safari kent die pas vanaf 14.1.
+   Marges geven in elke browser dezelfde afstand. */
+.ad-container .trust-container > * + *{margin-left:4px;}

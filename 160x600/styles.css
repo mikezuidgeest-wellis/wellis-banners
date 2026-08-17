@@ -41,9 +41,9 @@
 
 .ad-container{position:relative;display:block;width:160px;height:600px;background:var(--brand-teal);overflow:hidden;cursor:pointer;text-decoration:none;
   font-family:"Gordita",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;}
-.ad-container .bg-color{position:absolute;inset:0;background:var(--brand-teal);z-index:1;}
-.ad-container .story-system{position:absolute;inset:0;z-index:2;}
-.ad-container .slide{position:absolute;inset:0;opacity:0;visibility:hidden;transition:opacity .8s var(--ease-premium);}
+.ad-container .bg-color{position:absolute;top:0;right:0;bottom:0;left:0;inset:0;background:var(--brand-teal);z-index:1;}
+.ad-container .story-system{position:absolute;top:0;right:0;bottom:0;left:0;inset:0;z-index:2;}
+.ad-container .slide{position:absolute;top:0;right:0;bottom:0;left:0;inset:0;opacity:0;visibility:hidden;transition:opacity .8s var(--ease-premium);}
 .ad-container .slide.is-active{opacity:1;visibility:visible;}
 /* Photo top (height 283) */
 .ad-container .hero-container{position:absolute;top:0;left:0;right:0;height:283px;overflow:hidden;}
@@ -59,7 +59,7 @@
 .ad-container .headline{display:block;color:var(--text-white);font-weight:500;font-size:19.09px;line-height:1.1;letter-spacing:-0.01em;opacity:0;filter:blur(4px);will-change:transform,opacity;transform:translateX(-22px);}
 /* Price sticker centred at the bottom of the photo */
 .ad-container .price-container{position:absolute;top:209px;left:37px;width:86px;height:86px;z-index:10;opacity:0;transform:scale(.6) rotate(-15deg);pointer-events:none;filter:drop-shadow(0 4px 6px rgba(0,0,0,.18));}
-.ad-container .price-stamp-bg{position:absolute;inset:0;width:100%!important;height:100%!important;z-index:-1;}
+.ad-container .price-stamp-bg{position:absolute;top:0;right:0;bottom:0;left:0;inset:0;width:100%!important;height:100%!important;z-index:-1;}
 .ad-container .price-content{position:relative;display:block;width:100%;height:100%;color:var(--brand-teal);line-height:1;}
 .ad-container .price-content span{position:absolute;left:0;right:0;text-align:center;line-height:1;}
 .ad-container .price-sub{font-size:14.0px;font-weight:500;}
@@ -79,8 +79,8 @@
 .ad-container:hover .cta-shine{left:140%;}
 /* Trustpilot stacked at bottom */
 .ad-container .trust-container{position:absolute;bottom:0;left:0;right:0;height:58px;background:var(--text-white);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;z-index:11;opacity:0;transform:translateY(8px);}
-.ad-container .tp-row{display:flex;align-items:center;gap:6px;}
+  display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:11;opacity:0;transform:translateY(8px);}
+.ad-container .tp-row{display:flex;align-items:center;}
 .ad-container .tp-score{font-weight:700;font-size:14px;color:#191919;}
 .ad-container .tp-rating{display:inline-flex;align-items:baseline;}
 .ad-container .tp-of{font-weight:400;font-size:14px;color:var(--tp-text);}
@@ -124,3 +124,8 @@
 .ad-container .trust-container,
 .ad-container .price-container,
 .ad-container .cta-button{opacity:1!important;transform:none!important;filter:none!important;}.ad-container .tp-stars-mask{width:81px!important;}}
+
+/* Vervanging van flex-gap: Safari kent die pas vanaf 14.1.
+   Marges geven in elke browser dezelfde afstand. */
+.ad-container .trust-container > * + *{margin-top:5px;}
+.ad-container .tp-row > * + *{margin-left:6px;}

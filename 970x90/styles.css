@@ -45,10 +45,10 @@
 
 .ad-container{position:relative;display:block;width:970px;height:90px;background:var(--brand-teal);overflow:hidden;cursor:pointer;text-decoration:none;
   font-family:"Gordita",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;}
-.ad-container .bg-color{position:absolute;inset:0;background:var(--brand-teal);z-index:1;}
+.ad-container .bg-color{position:absolute;top:0;right:0;bottom:0;left:0;inset:0;background:var(--brand-teal);z-index:1;}
 
-.ad-container .story-system{position:absolute;inset:0;z-index:2;}
-.ad-container .slide{position:absolute;inset:0;opacity:0;visibility:hidden;transition:opacity .8s var(--ease-premium);}
+.ad-container .story-system{position:absolute;top:0;right:0;bottom:0;left:0;inset:0;z-index:2;}
+.ad-container .slide{position:absolute;top:0;right:0;bottom:0;left:0;inset:0;opacity:0;visibility:hidden;transition:opacity .8s var(--ease-premium);}
 .ad-container .slide.is-active{opacity:1;visibility:visible;}
 
 /* Photo right (x785-970 → 185px) */
@@ -68,7 +68,7 @@
 /* Price sticker (~80px star, left497 top5) — same component as 300x250 */
 .ad-container .price-container{position:absolute;left:497px;top:5px;width:77px;height:77px;z-index:10;
   opacity:0;transform:scale(.6) rotate(-15deg);pointer-events:none;filter:drop-shadow(0 4px 6px rgba(0,0,0,.15));}
-.ad-container .price-stamp-bg{position:absolute;inset:0;width:100%!important;height:100%!important;z-index:-1;}
+.ad-container .price-stamp-bg{position:absolute;top:0;right:0;bottom:0;left:0;inset:0;width:100%!important;height:100%!important;z-index:-1;}
 .ad-container .price-content{position:relative;display:block;width:100%;height:100%;color:var(--brand-teal);font-weight:700;line-height:1;}
 .ad-container .price-content span{position:absolute;left:0;right:0;text-align:center;line-height:1;}
 .ad-container .price-sub{font-size:12.5px;font-weight:500;}
