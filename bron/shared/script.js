@@ -36,15 +36,27 @@
    Per root, niet globaal: een pagina kan banners in twee talen bevatten (de
    previews doen dat niet, maar een publisher zou het kunnen). */
 var STANDAARD_KLIK = {
-    nl: "https://www.getwellis.com",
+    nl: "https://www.getwellis.com/",
     de: "https://www.getwellis.de/"
 };
 
 /* IAB-conventie: een creatie hoort een globale clickTag te hebben, en
    validators controleren daarop. We zetten hem alleen als hij nog niet
    bestaat, zodat een adserver die hem eerder injecteerde niet overschreven
-   wordt. */
-var ONZE_STANDAARD = STANDAARD_KLIK.nl;
+   wordt.
+
+   De waarde volgt de TAAL van het document. Stond hier eerder onvoorwaardelijk
+   het Nederlandse domein, waardoor window.clickTag op alle Duitse creaties
+   getwellis.com aanwees. Het klikpad zelf was wel goed, maar een validator of
+   publisher die de IAB-conventie volgt en clickTag uitleest in plaats van te
+   klikken, stuurde Duits verkeer naar de Nederlandse site. */
+function documentTaal() {
+    var el = document.querySelector("[data-lang]");
+    var l = el ? el.getAttribute("data-lang") : document.documentElement.getAttribute("lang");
+    return (l || "nl").slice(0, 2).toLowerCase();
+}
+
+var ONZE_STANDAARD = STANDAARD_KLIK[documentTaal()] || STANDAARD_KLIK.nl;
 if (typeof window.clickTag === "undefined") {
     window.clickTag = ONZE_STANDAARD;
 }
@@ -61,7 +73,8 @@ function klikURL(root) {
        adserver hem gezet - voor of na het laden van dit script. Vergelijken in
        plaats van eenmalig uitlezen, want sommige servers injecteren pas kort
        voor de klik. */
-    if (window.clickTag && window.clickTag !== ONZE_STANDAARD) return window.clickTag;
+    var eigenWaarden = [STANDAARD_KLIK.nl, STANDAARD_KLIK.de];
+    if (window.clickTag && eigenWaarden.indexOf(window.clickTag) === -1) return window.clickTag;
     var eigen = root && root.getAttribute("data-click-url");
     if (eigen) return eigen;
     return STANDAARD_KLIK[taalVan(root)] || ONZE_STANDAARD;

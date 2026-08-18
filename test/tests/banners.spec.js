@@ -25,7 +25,7 @@ const FORMATEN = [
 ];
 
 const TALEN = [
-  { code: 'nl', pad: (f) => `${f}/`, klik: 'https://www.getwellis.com' },
+  { code: 'nl', pad: (f) => `${f}/`, klik: 'https://www.getwellis.com/' },
   { code: 'de', pad: (f) => `de/${f}/`, klik: 'https://www.getwellis.de/' },
 ];
 

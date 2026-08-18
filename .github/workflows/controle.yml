@@ -59,9 +59,16 @@ jobs:
         working-directory: test
         run: node valideer-snippets.js
 
-      - name: Browsercompatibiliteit van de CSS
+      - name: Meet het gewicht per creatie
         working-directory: test
-        run: npm run css-compat
+        run: node meet-gewicht.js
+
+      - name: Browsercompatibiliteit van de CSS (informatief)
+        working-directory: test
+        # doiuse geeft altijd exitcode 0, ook bij treffers. Deze stap kan de
+        # build dus NIET op rood zetten; hij is er om de lijst te kunnen lezen.
+        # De echte afdwinging zit in de browsertests en in valideer-snippets.js.
+        run: npm run css-compat || true
 
   browsers:
     name: Chrome, Firefox en Safari-engine

@@ -28,7 +28,12 @@ CDN  = "https://mikezuidgeest-wellis.github.io/wellis-banners"
 # De waarde komt als data-click-url in de markup, zodat een sanitizer die inline
 # script weghaalt hem niet meeneemt. Een adserver die window.clickTag zet houdt
 # altijd voorrang.
-KLIK_URL = "https://www.getwellis.com"
+KLIK_URL = "https://www.getwellis.com/"
+
+# Kop die in de markup staat als vangnet. randomizer.js overschrijft hem bij
+# elke load; hij is alleen zichtbaar als er geen JavaScript draait. Gelijk aan
+# fallbackHeadline in banner-data.js, zodat er één formulering is.
+STANDAARD_KOP = "Start met medisch afvallen."
 
 RESET = """/* ===== CSS-ISOLATIE =====================================================
    De originele stylesheet gebruikte een globale `*{}`-selector. Die lekte naar
@@ -285,6 +290,26 @@ def bouw_css(bron_css, img_klassen=None):
     return browser_fallbacks(RESET + css_scoped)
 
 
+def css_noscript(css):
+    """Haalt de zichtbaar-maak-regels uit het reduced-motion-blok en levert ze
+    als los CSS-blok, bedoeld voor <noscript>.
+
+    Zonder JavaScript wordt 'is-loaded' nooit gezet en blijven kop, logo,
+    prijssticker, CTA en Trustpilot-balk op opacity 0 staan. Gemeten op
+    300x250: een screenshot van 1422 bytes met twee kleuren - een leeg teal
+    vlak. Er zit ook geen <a> in de markup, dus zelfs klikken deed niets.
+
+    Het reduced-motion-blok zet die opacity's al onvoorwaardelijk. Precies wat
+    we hier nodig hebben, dus we hergebruiken die regels in plaats van een
+    tweede waarheid te introduceren die kan gaan afwijken.
+    """
+    import re as _re
+    m = _re.search(r"@media \(prefers-reduced-motion: reduce\)\{(.*?)\n\}", css, _re.S)
+    if not m:
+        return ""
+    return m.group(1).strip()
+
+
 def css_2x(formaat):
     """CSS voor de 2x-variant: de banner op dubbele grootte.
 
@@ -317,7 +342,7 @@ def css_2x(formaat):
 """ % (b * 2, h * 2, b, h))
 
 
-def bouw_index(bron_html, formaat, awin=False, tweex=False):
+def bouw_index(bron_html, formaat, awin=False, tweex=False, noscript_css=""):
     html = open(bron_html, encoding="utf-8").read()
     body = html.split("<body>", 1)[1].split("</body>", 1)[0]
     # De originele <script>-tags uit de body halen: die verwijzen relatief naar
@@ -327,6 +352,14 @@ def bouw_index(bron_html, formaat, awin=False, tweex=False):
     basis = (CDN + "/assets/") if awin else "../assets/"
     shared = (CDN + "/shared/") if awin else "../shared/"
     css_href = (CDN + "/" + formaat + "/styles.css") if awin else "styles.css"
+
+    # Standaardkop in de markup zetten. De koppen worden normaal door
+    # randomizer.js gevuld en de markup is leeg. Draait er geen JavaScript, dan
+    # staat er dus brand, prijs en CTA maar GEEN boodschap. Gemeten zonder JS:
+    # kop leeg, terwijl de rest wel zichtbaar was. Met deze seed staat er altijd
+    # een leesbare kop; randomizer.js overschrijft hem zodra hij draait.
+    body = re.sub(r'(<div class="headline" id="headline[AB]"[^>]*>)\s*(</div>)',
+                  lambda m: m.group(1) + STANDAARD_KOP + m.group(2), body)
 
     # Awin weigert elke http:// in de creatie. Zijn validator kijkt naar de
     # TEKST, niet naar wat er opgehaald wordt, dus ook de XML-namespace van een
@@ -355,12 +388,17 @@ def bouw_index(bron_html, formaat, awin=False, tweex=False):
                         '<div id="ad-container" data-asset-base="%s" data-lang="nl" data-click-url="%s"'
                         % (basis, KLIK_URL), 1)
 
-    scripts = ("\n".join([
-        '<script src="%sbanner-data.js"><\/script>' % shared,
-        '<script src="%s_i18n.js"><\/script>' % shared,
-        '<script src="%srandomizer.js"><\/script>' % shared,
-        '<script src="%sscript.js"><\/script>' % shared,
-    ])).replace("<\\/script>", "</script>")
+    # _i18n.js zit NIET in de Nederlandse snippets. Dat bestand is 16 KB en
+    # doet op Nederlands niets: het returnt direct bij getLang() !== "de". Op
+    # 25 creaties is dat 16 KB per impressie voor niets, en het gewicht zat al
+    # tegen de 150 KB aan. De losse pagina's houden het wel, want daar zit de
+    # ?lang=de-toggle van de preview op.
+    js = ["banner-data.js", "randomizer.js", "script.js"]
+    if not awin:
+        js.insert(1, "_i18n.js")
+    scripts = ("\n".join(
+        ['<script src="%s%s"><\/script>' % (shared, f) for f in js]
+    )).replace("<\\/script>", "</script>")
 
     breedte, hoogte = formaat.split("x")
 
@@ -374,9 +412,10 @@ def bouw_index(bron_html, formaat, awin=False, tweex=False):
                 '<meta name="ad.size" content="width=%d,height=%d">\n'
                 '<base href="%s/%s/">\n'
                 '<link rel="stylesheet" href="%s">\n</head>\n<body>\n'
+                '<noscript><style>%s</style></noscript>\n'
                 '<div class="gw-2x"><div class="gw-2x-inner">\n%s\n</div></div>\n%s\n</body>\n</html>\n'
                 ) % (int(breedte) * 2, int(hoogte) * 2, int(breedte) * 2, int(hoogte) * 2,
-                     CDN, formaat, css_href, body, scripts)
+                     CDN, formaat, css_href, noscript_css, body, scripts)
 
     if awin:
         # Awin serveert de creatie als een EIGEN document in een iframe, niet
@@ -393,8 +432,9 @@ def bouw_index(bron_html, formaat, awin=False, tweex=False):
                 '<title>GetWellis - %s</title>\n'
                 '<meta name="ad.size" content="width=%s,height=%s">\n'
                 '<base href="%s/%s/">\n'
-                '<link rel="stylesheet" href="%s">\n</head>\n<body>\n%s\n%s\n</body>\n</html>\n'
-                ) % (formaat, breedte, hoogte, CDN, formaat, css_href, body, scripts)
+                '<link rel="stylesheet" href="%s">\n</head>\n<body>\n'
+                '<noscript><style>%s</style></noscript>\n%s\n%s\n</body>\n</html>\n'
+                ) % (formaat, breedte, hoogte, CDN, formaat, css_href, noscript_css, body, scripts)
 
     return ('<!DOCTYPE html>\n<html lang="nl">\n<head>\n<meta charset="utf-8">\n'
             '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
@@ -450,16 +490,18 @@ def main():
 
         doel = os.path.join(UIT, formaat)
         os.makedirs(doel)
+        css_uit = bouw_css(css_bron, img_klassen)
+        ns = css_noscript(css_uit)
         open(os.path.join(doel, "styles.css"), "w", encoding="utf-8").write(
-            bouw_css(css_bron, img_klassen) + css_2x(formaat))
+            css_uit + css_2x(formaat))
         open(os.path.join(doel, "index.html"), "w", encoding="utf-8").write(
-            bouw_index(os.path.join(src, "index.html"), formaat, awin=False))
+            bouw_index(os.path.join(src, "index.html"), formaat, awin=False, noscript_css=ns))
         open(os.path.join(UIT, "_AWIN_SNIPPETS", formaat + ".html"), "w", encoding="utf-8").write(
-            bouw_index(os.path.join(src, "index.html"), formaat, awin=True))
+            bouw_index(os.path.join(src, "index.html"), formaat, awin=True, noscript_css=ns))
         if formaat in TWEEX:
             b2, h2 = (int(x) * 2 for x in formaat.split("x"))
             open(os.path.join(UIT, "_AWIN_SNIPPETS_2X", "%dx%d.html" % (b2, h2)), "w", encoding="utf-8").write(
-                bouw_index(os.path.join(src, "index.html"), formaat, awin=True, tweex=True))
+                bouw_index(os.path.join(src, "index.html"), formaat, awin=True, tweex=True, noscript_css=ns))
         print("  gebouwd: %-9s css=%5d  html=%4d" % (
             formaat,
             os.path.getsize(os.path.join(doel, "styles.css")),

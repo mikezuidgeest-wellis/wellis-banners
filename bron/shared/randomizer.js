@@ -113,6 +113,18 @@
      the final two words together. One-line and 3+-line cases are left untouched. */
   function setHeadline(el, raw, D) {
     if (!el) return;
+    /* Zonder deze wacht kwam er letterlijk "undefined" in de banner te staan.
+       Keten: valt banner-data.js weg, dan is D leeg, levert chooseHeadlines
+       [""] op, wordt "" || D.fallbackHeadline dus undefined, en zet
+       applyHyphens(String(undefined)) de tekst "undefined" in de kop. Gemeten
+       op 300x250: body-tekst werd "undefined vanaf EUR149 maand Start met
+       afvallen".
+       Nu: laat de kop staan zoals hij in de markup staat en meld het in de
+       console. Een lege kop is onopvallend, "undefined" is een blunder. */
+    if (raw === undefined || raw === null || String(raw).trim() === "" || String(raw) === "undefined") {
+      console.warn("[GetWellis] geen kop beschikbaar - markup blijft ongewijzigd");
+      return;
+    }
     el._raw = raw;
     var text = applyHyphens(raw, D.hyphenate);
     el.textContent = text;

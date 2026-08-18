@@ -122,3 +122,31 @@ window.BannerData = {
     "Wetenschappelijk bewezen aanpak."
   ]
 };
+
+/* ===== VANGNET ===========================================================
+   Dit is het EERSTE script dat laadt. Valt randomizer.js of script.js daarna
+   weg - een netwerkfout, een blokkade bij de publisher, een adblocker die één
+   bestand pakt - dan wordt 'is-loaded' nooit gezet en blijft de hele creatie
+   op opacity 0 staan. Gemeten zonder script.js: kop, logo, prijssticker, CTA
+   en Trustpilot-balk alle vijf op 0, oftewel een leeg teal vlak.
+
+   Na 2,5 seconde controleren we of de entree gestart is. Zo niet, dan zetten
+   we 'is-loaded' zelf. De banner mist dan zijn animatie en zijn rotatie, maar
+   hij is wél te zien en te lezen. Dat is het verschil tussen een matige
+   impressie en een verspilde.
+
+   Het <noscript>-blok in de snippet dekt het geval dat JavaScript volledig uit
+   staat; dit vangnet dekt het geval dat JavaScript wel draait maar een bestand
+   ontbreekt. Twee verschillende storingen, twee aparte maatregelen. */
+(function () {
+  "use strict";
+  setTimeout(function () {
+    var roots = document.querySelectorAll(".ad-container");
+    for (var i = 0; i < roots.length; i++) {
+      if (!roots[i].classList.contains("is-loaded")) {
+        roots[i].classList.add("is-loaded");
+        console.warn("[GetWellis] entree niet gestart binnen 2,5s - vangnet zet is-loaded");
+      }
+    }
+  }, 2500);
+})();

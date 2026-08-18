@@ -29,7 +29,7 @@ const CDN = 'https://mikezuidgeest-wellis.github.io/wellis-banners/';
 // leidden eerder naar getwellis.com omdat script.js een enkele harde
 // terugvaloptie voor beide talen had. Deze tabel houdt dat vast, zodat een
 // nieuw formaat of een nieuwe taal niet stil op het verkeerde domein uitkomt.
-const KLIK = { nl: 'https://www.getwellis.com', de: 'https://www.getwellis.de/' };
+const KLIK = { nl: 'https://www.getwellis.com/', de: 'https://www.getwellis.de/' };
 
 const fouten = [];
 let gecontroleerd = 0;
@@ -58,6 +58,7 @@ for (const map of MAPPEN) {
     // ad.size en base href moeten bij DIT formaat horen, niet bij een ander.
     // Een generieke check op "staat er een ad.size" laat een kopieerfout door,
     // en dan plaatst Awin de creatie in het verkeerde slot.
+    const taal = map === '_AWIN_SNIPPETS_DE' ? 'de' : 'nl';
     const [B, H] = b.replace('.html', '').split('x');
     if (!code.includes(`<meta name="ad.size" content="width=${B},height=${H}">`)) {
       const gevonden = (code.match(/content="width=\d+,height=\d+"/) || ['ontbreekt'])[0];
@@ -108,10 +109,17 @@ for (const map of MAPPEN) {
       if (!code.toLowerCase().includes(tag.toLowerCase())) fouten.push(`${naam}: ${tag} ontbreekt`);
     }
     if (!/<link rel="stylesheet"/.test(code)) fouten.push(`${naam}: geen stylesheet`);
-    for (const js of ['banner-data.js', '_i18n.js', 'randomizer.js', 'script.js']) {
+    // _i18n.js hoort ALLEEN in de Duitse snippets. Op Nederlands returnt dat
+    // bestand direct bij getLang() !== "de" en kost het 16 KB per impressie
+    // voor niets - meetbaar, want het gewicht zat al tegen de 150 KB aan.
+    const nodig = ['banner-data.js', 'randomizer.js', 'script.js'];
+    if (taal === 'de') nodig.push('_i18n.js');
+    for (const js of nodig) {
       if (!code.includes(js)) fouten.push(`${naam}: script ${js} ontbreekt`);
     }
-    const taal = map === '_AWIN_SNIPPETS_DE' ? 'de' : 'nl';
+    if (taal !== 'de' && /_i18n\.js/.test(code)) {
+      fouten.push(`${naam}: laadt _i18n.js maar is Nederlands - 16 KB voor niets`);
+    }
     if (!new RegExp(`data-lang="${taal}"`).test(code)) {
       fouten.push(`${naam}: data-lang="${taal}" ontbreekt`);
     }
