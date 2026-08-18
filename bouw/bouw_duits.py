@@ -35,6 +35,12 @@ BRON = _os.path.join(_REPO, "bron")
 UIT  = _os.path.join(_REPO, ".build", "de")
 CDN  = "https://mikezuidgeest-wellis.github.io/wellis-banners"
 
+# Bestemming van de klik voor de Duitse set. Eigen domein: de Duitse banners
+# leidden eerder naar getwellis.com omdat er een enkele harde terugvaloptie
+# voor beide talen in script.js stond. Dit is de enige plek waar het
+# DE-domein staat.
+KLIK_URL = "https://www.getwellis.de/"
+
 
 def duitse_body(bron_html):
     """Pakt de bannermarkup en maakt hem geschikt voor de Duitse set."""
@@ -79,7 +85,8 @@ def scripts():
 def met_data_attributen(body):
     """Zet taal en asset-base als markup op de container."""
     return body.replace('<div id="ad-container"',
-                        '<div id="ad-container" data-asset-base="%s/assets/" data-lang="de"' % CDN, 1)
+                        '<div id="ad-container" data-asset-base="%s/assets/" data-lang="de" data-click-url="%s"'
+                        % (CDN, KLIK_URL), 1)
 
 
 def bouw_pagina(body, formaat):

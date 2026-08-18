@@ -25,6 +25,12 @@ const REPO = path.join(__dirname, '..');
 const MAPPEN = ['_AWIN_SNIPPETS', '_AWIN_SNIPPETS_DE'];
 const CDN = 'https://mikezuidgeest-wellis.github.io/wellis-banners/';
 
+// Bestemming per markt. Duitse banners moeten naar het Duitse domein; ze
+// leidden eerder naar getwellis.com omdat script.js een enkele harde
+// terugvaloptie voor beide talen had. Deze tabel houdt dat vast, zodat een
+// nieuw formaat of een nieuwe taal niet stil op het verkeerde domein uitkomt.
+const KLIK = { nl: 'https://www.getwellis.com', de: 'https://www.getwellis.de/' };
+
 const fouten = [];
 let gecontroleerd = 0;
 
@@ -81,6 +87,10 @@ for (const map of MAPPEN) {
     const taal = map === '_AWIN_SNIPPETS_DE' ? 'de' : 'nl';
     if (!new RegExp(`data-lang="${taal}"`).test(code)) {
       fouten.push(`${naam}: data-lang="${taal}" ontbreekt`);
+    }
+    if (!code.includes(`data-click-url="${KLIK[taal]}"`)) {
+      const gevonden = (code.match(/data-click-url="[^"]*"/) || ['ontbreekt'])[0];
+      fouten.push(`${naam}: klik-URL moet ${KLIK[taal]} zijn, gevonden: ${gevonden}`);
     }
   }
 }

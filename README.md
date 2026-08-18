@@ -61,6 +61,8 @@ Groen vinkje = goed. GitHub Pages ververst binnen een minuut of twee.
 | Trustpilot-aantal | `bron/shared/script.js` (`PLATEAU`) |
 | Rotatiesnelheid, 15s-limiet | `bron/shared/script.js` |
 | Welke foto's, randomisatielogica | `bron/shared/randomizer.js` |
+| Klik-URL Nederlands | `bouw/bouw_formaten.py` (`KLIK_URL`) |
+| Klik-URL Duits | `bouw/bouw_duits.py` (`KLIK_URL`) |
 | Layout van één formaat | `bron/<formaat>/styles.css` |
 | Isolatieregels, fallbacks | `bouw/bouw_formaten.py` |
 | Duitse opbouw | `bouw/bouw_duits.py` |
@@ -116,6 +118,18 @@ asset-base en de taal staan daarom als markup op de container:
 `randomizer.js` en `_i18n.js` lezen die attributen zelf uit. Werd de inline
 variant gestript, dan verdwenen alle foto's (NL) of bleef de Duitse creatie
 stil in het Nederlands staan — geen foutmelding, alleen verkeerde taal.
+
+**De klik-URL staat per taal in de markup.** Nederlands gaat naar
+`getwellis.com`, Duits naar `getwellis.de`. Dat staat als
+`data-click-url` op de container, en de bron is één constante per taal:
+`KLIK_URL` in `bouw/bouw_formaten.py` respectievelijk `bouw/bouw_duits.py`.
+Eerder had `script.js` één harde terugvaloptie voor beide talen, waardoor de
+Duitse banners naar het Nederlandse domein leidden.
+
+Een adserver die `window.clickTag` zet houdt altijd voorrang — daar hangt de
+klikregistratie aan. `script.js` vergelijkt `window.clickTag` met zijn eigen
+standaardwaarde in plaats van hem eenmalig uit te lezen, want sommige servers
+injecteren pas kort voor de klik.
 
 **`<meta name="ad.size">` moet erin.** Awin en de IAB-validators gebruiken het
 om de creatie te plaatsen.

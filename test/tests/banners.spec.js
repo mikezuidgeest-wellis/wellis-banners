@@ -25,8 +25,8 @@ const FORMATEN = [
 ];
 
 const TALEN = [
-  { code: 'nl', pad: (f) => `${f}/` },
-  { code: 'de', pad: (f) => `de/${f}/` },
+  { code: 'nl', pad: (f) => `${f}/`, klik: 'https://www.getwellis.com' },
+  { code: 'de', pad: (f) => `de/${f}/`, klik: 'https://www.getwellis.de/' },
 ];
 
 /**
@@ -80,7 +80,13 @@ for (const taal of TALEN) {
 
         // Math.random pinnen VOOR de scripts draaien, anders kiest de
         // randomizer elke run andere content en is elke diff betekenisloos.
-        await page.addInitScript(() => { Math.random = () => 0.42; });
+        // window.open afvangen: we willen de klikbestemming meten, niet een
+        // tab openen naar de echte site.
+        await page.addInitScript(() => {
+          Math.random = () => 0.42;
+          window.__geopend = [];
+          window.open = (u) => { window.__geopend.push(u); return null; };
+        });
         await page.goto(taal.pad(formaat), { waitUntil: 'load' });
 
         // Fonts moeten geladen zijn voordat we tekst opmeten, anders meet je
@@ -159,6 +165,16 @@ for (const taal of TALEN) {
             `${taal.code}-${formaat}.png`, { animations: 'disabled' }
           );
         }
+
+        // 9. De klik gaat naar het juiste domein. De Duitse set moet naar
+        //    getwellis.de; die leidde eerder naar getwellis.com doordat
+        //    script.js een enkele harde terugvaloptie voor beide talen had.
+        //    Bewust NA de screenshot: een klik zet :active- en :focus-stijlen
+        //    en zou het referentiebeeld vervuilen.
+        await page.locator('.ad-container').click({ force: true });
+        const geopend = await page.evaluate(() => window.__geopend);
+        expect(geopend, 'klik opende geen URL').toHaveLength(1);
+        expect(geopend[0], 'klikbestemming').toBe(taal.klik);
       });
     }
 

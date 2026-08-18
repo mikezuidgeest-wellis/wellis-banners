@@ -23,6 +23,13 @@ BRON = _os.path.join(_REPO, "bron")
 UIT  = _os.path.join(_REPO, ".build", "nl")
 CDN  = "https://mikezuidgeest-wellis.github.io/wellis-banners"
 
+# Bestemming van de klik voor de Nederlandse set. Dit is de enige plek waar het
+# NL-domein staat; de Duitse set heeft zijn eigen constante in bouw_duits.py.
+# De waarde komt als data-click-url in de markup, zodat een sanitizer die inline
+# script weghaalt hem niet meeneemt. Een adserver die window.clickTag zet houdt
+# altijd voorrang.
+KLIK_URL = "https://www.getwellis.com"
+
 RESET = """/* ===== CSS-ISOLATIE =====================================================
    De originele stylesheet gebruikte een globale `*{}`-selector. Die lekte naar
    de publisher-pagina en bood geen bescherming tegen publisher-CSS die op onze
@@ -299,7 +306,8 @@ def bouw_index(bron_html, formaat, awin=False):
     # window.WELLIS_ASSET_BASE nooit gezet en verdwenen alle foto's terwijl de
     # rest van de banner er wel stond.
     body = body.replace('<div id="ad-container"',
-                        '<div id="ad-container" data-asset-base="%s" data-lang="nl"' % basis, 1)
+                        '<div id="ad-container" data-asset-base="%s" data-lang="nl" data-click-url="%s"'
+                        % (basis, KLIK_URL), 1)
 
     scripts = ("\n".join([
         '<script src="%sbanner-data.js"><\/script>' % shared,

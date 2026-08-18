@@ -18,16 +18,57 @@
    stress-suite). We initialiseren daarom ELKE .ad-container afzonderlijk en
    scopen alle DOM-lookups op die root i.p.v. op het document. */
 
-// ClickTag blijft bewust op window: ad servers (DV360, CM360, GDN, Adform,
-// Sizmek, Weborama) injecteren window.clickTag at runtime.
+/* ===== KLIK-URL ==========================================================
+   De bestemming verschilt per markt: de Duitse set moet naar getwellis.de,
+   de Nederlandse naar getwellis.com. Eerder stond er een enkele harde
+   terugvaloptie voor beide talen, waardoor Duitse banners naar het
+   Nederlandse domein leidden.
+
+   Drie bronnen, in deze volgorde:
+     1. window.clickTag, gezet door een adserver (DV360, CM360, GDN, Adform,
+        Sizmek, Weborama). Die heeft ALTIJD voorrang: daar hangt de
+        klikregistratie aan.
+     2. data-click-url op de eigen .ad-container, door de bouw per taal gezet.
+        Markup, dus het overleeft een sanitizer die inline script weghaalt.
+     3. Een taalafhankelijke standaard, afgeleid van data-lang of <html lang>.
+        Vangnet voor een pagina die met de hand is gemaakt.
+
+   Per root, niet globaal: een pagina kan banners in twee talen bevatten (de
+   previews doen dat niet, maar een publisher zou het kunnen). */
+var STANDAARD_KLIK = {
+    nl: "https://www.getwellis.com",
+    de: "https://www.getwellis.de/"
+};
+
+/* IAB-conventie: een creatie hoort een globale clickTag te hebben, en
+   validators controleren daarop. We zetten hem alleen als hij nog niet
+   bestaat, zodat een adserver die hem eerder injecteerde niet overschreven
+   wordt. */
+var ONZE_STANDAARD = STANDAARD_KLIK.nl;
 if (typeof window.clickTag === "undefined") {
-    window.clickTag = "https://www.getwellis.com";
+    window.clickTag = ONZE_STANDAARD;
 }
 var clickTag = window.clickTag;
 
-function fireClickThrough() {
-    // Prefer the server-provided macro, otherwise use the hard fallback.
-    window.open(window.clickTag || clickTag, '_blank');
+function taalVan(root) {
+    var bron = (root && root.getAttribute("data-lang")) ? root : document.querySelector("[data-lang]");
+    var l = bron ? bron.getAttribute("data-lang") : document.documentElement.getAttribute("lang");
+    return (l || "nl").slice(0, 2).toLowerCase();
+}
+
+function klikURL(root) {
+    /* Wijkt window.clickTag af van de waarde die wij erin zetten, dan heeft een
+       adserver hem gezet - voor of na het laden van dit script. Vergelijken in
+       plaats van eenmalig uitlezen, want sommige servers injecteren pas kort
+       voor de klik. */
+    if (window.clickTag && window.clickTag !== ONZE_STANDAARD) return window.clickTag;
+    var eigen = root && root.getAttribute("data-click-url");
+    if (eigen) return eigen;
+    return STANDAARD_KLIK[taalVan(root)] || ONZE_STANDAARD;
+}
+
+function fireClickThrough(root) {
+    window.open(klikURL(root), '_blank');
 }
 
 // 2. Banner Core Logic — factory, één instantie per bannerroot.
@@ -195,11 +236,11 @@ function createBannerSystem(ROOT) {
     }
   };
 
-  ROOT.addEventListener('click', fireClickThrough);
+  ROOT.addEventListener('click', function () { fireClickThrough(ROOT); });
   ROOT.addEventListener('keydown', function (e) {
       if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
           e.preventDefault();
-          fireClickThrough();
+          fireClickThrough(ROOT);
       }
   });
 
