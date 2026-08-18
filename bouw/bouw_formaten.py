@@ -285,7 +285,39 @@ def bouw_css(bron_css, img_klassen=None):
     return browser_fallbacks(RESET + css_scoped)
 
 
-def bouw_index(bron_html, formaat, awin=False):
+def css_2x(formaat):
+    """CSS voor de 2x-variant: de banner op dubbele grootte.
+
+    Bedoeld voor advertentieplekken die daadwerkelijk twee keer zo groot zijn,
+    niet als scherptemaatregel. De set is namelijk al retina-scherp: de foto's
+    zijn 640x640 bronbestanden tegen maximaal 300px weergave, en logo,
+    prijssticker, Trustpilot-sterren en alle tekst zijn vector of CSS. Een
+    bitmap-banner heeft een 2x-export nodig, een DOM-banner niet.
+
+    transform:scale() in plaats van dubbele CSS-waarden: de layout blijft exact
+    dezelfde en blijft vectorscherp, en de bestaande stylesheet hoeft niet op
+    twee plekken onderhouden te worden.
+
+    Deze regels staan in dezelfde stylesheet als de 1x-versie. Ze doen niets
+    zolang het .gw-2x-element ontbreekt, dus de gewone snippet blijft ongemoeid.
+    """
+    b, h = (int(x) for x in formaat.split("x"))
+    return ("""
+/* ===== 2x-VARIANT =======================================================
+   Alleen actief in de snippets uit _AWIN_SNIPPETS_2X. !important omdat de
+   wrapper BUITEN .ad-container staat en dus niet onder de isolatie-reset valt;
+   een publisher-regel op div zou hem anders kunnen platdrukken. */
+.gw-2x{position:relative!important;display:block!important;
+  width:%dpx!important;height:%dpx!important;overflow:hidden!important;
+  margin:0!important;padding:0!important;border:0!important;background:none!important;}
+.gw-2x .gw-2x-inner{position:absolute!important;top:0!important;left:0!important;
+  width:%dpx!important;height:%dpx!important;
+  transform:scale(2)!important;transform-origin:0 0!important;
+  margin:0!important;padding:0!important;border:0!important;}
+""" % (b * 2, h * 2, b, h))
+
+
+def bouw_index(bron_html, formaat, awin=False, tweex=False):
     html = open(bron_html, encoding="utf-8").read()
     body = html.split("<body>", 1)[1].split("</body>", 1)[0]
     # De originele <script>-tags uit de body halen: die verwijzen relatief naar
@@ -331,6 +363,20 @@ def bouw_index(bron_html, formaat, awin=False):
     ])).replace("<\\/script>", "</script>")
 
     breedte, hoogte = formaat.split("x")
+
+    if awin and tweex:
+        # 2x: dezelfde banner, in een wrapper van dubbele maat met scale(2).
+        # ad.size en base href verwijzen naar de DUBBELE maat, want dat is wat
+        # de creatie inneemt. De stylesheet blijft die van het 1x-formaat.
+        return ('<!DOCTYPE html>\n<html lang="nl">\n<head>\n<meta charset="utf-8">\n'
+                '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
+                '<title>GetWellis - %dx%d</title>\n'
+                '<meta name="ad.size" content="width=%d,height=%d">\n'
+                '<base href="%s/%s/">\n'
+                '<link rel="stylesheet" href="%s">\n</head>\n<body>\n'
+                '<div class="gw-2x"><div class="gw-2x-inner">\n%s\n</div></div>\n%s\n</body>\n</html>\n'
+                ) % (int(breedte) * 2, int(hoogte) * 2, int(breedte) * 2, int(hoogte) * 2,
+                     CDN, formaat, css_href, body, scripts)
 
     if awin:
         # Awin serveert de creatie als een EIGEN document in een iframe, niet
@@ -378,6 +424,12 @@ def main():
 
     shutil.copytree(os.path.join(BRON, "assets"), os.path.join(UIT, "assets"))
     os.makedirs(os.path.join(UIT, "_AWIN_SNIPPETS"))
+    os.makedirs(os.path.join(UIT, "_AWIN_SNIPPETS_2X"))
+
+    # Alleen de maten waar Awin daadwerkelijk om vroeg. Niet alle 16 verdubbelen:
+    # een creatie die nergens een plek heeft is alleen ruis in de bibliotheek.
+    TWEEX = {"160x600", "300x600", "300x100", "200x200", "250x250",
+             "300x250", "300x50", "320x50", "728x90"}
 
     for formaat in formaten:
         src = os.path.join(BRON, formaat)
@@ -399,11 +451,15 @@ def main():
         doel = os.path.join(UIT, formaat)
         os.makedirs(doel)
         open(os.path.join(doel, "styles.css"), "w", encoding="utf-8").write(
-            bouw_css(css_bron, img_klassen))
+            bouw_css(css_bron, img_klassen) + css_2x(formaat))
         open(os.path.join(doel, "index.html"), "w", encoding="utf-8").write(
             bouw_index(os.path.join(src, "index.html"), formaat, awin=False))
         open(os.path.join(UIT, "_AWIN_SNIPPETS", formaat + ".html"), "w", encoding="utf-8").write(
             bouw_index(os.path.join(src, "index.html"), formaat, awin=True))
+        if formaat in TWEEX:
+            b2, h2 = (int(x) * 2 for x in formaat.split("x"))
+            open(os.path.join(UIT, "_AWIN_SNIPPETS_2X", "%dx%d.html" % (b2, h2)), "w", encoding="utf-8").write(
+                bouw_index(os.path.join(src, "index.html"), formaat, awin=True, tweex=True))
         print("  gebouwd: %-9s css=%5d  html=%4d" % (
             formaat,
             os.path.getsize(os.path.join(doel, "styles.css")),

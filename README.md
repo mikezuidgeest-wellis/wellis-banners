@@ -27,6 +27,7 @@ teruggedraaid. De GitHub Action controleert daarop en zet de build op rood.
 | `shared/`, `assets/` | Gegenereerd. De JavaScript en de afbeeldingen die alle banners delen. | ja |
 | `_AWIN_SNIPPETS/` | Gegenereerd. De HTML om in de Awin-editor te plakken, Nederlands. | ja |
 | `_AWIN_SNIPPETS_DE/` | Idem, Duits. | ja |
+| `_AWIN_SNIPPETS_2X/` | Gegenereerd. Negen maten op dubbele grootte, voor plekken die daadwerkelijk twee keer zo groot zijn. | ja |
 | `.build/` | Tussenstap van de bouw. | nee, genegeerd |
 
 Dat de gegenereerde bestanden meegaan in git is met opzet: GitHub Pages serveert
@@ -160,6 +161,30 @@ van 2720. Verwijs er nooit naar.
 ```bash
 cd test && npm run snippet-lint
 ```
+
+## De 2x-varianten
+
+In `_AWIN_SNIPPETS_2X/` staan negen maten op dubbele grootte: 320x1200, 400x400,
+500x500, 600x100, 600x200, 600x500, 600x1200, 640x100 en 1456x180. Elk is een
+wrapper met `transform: scale(2)` om het gewone formaat; de stylesheet is die
+van het basisformaat en wordt niet gedupliceerd.
+
+**Dit is geen scherptemaatregel.** Een afbeeldingsbanner heeft een 2x-export
+nodig omdat een bitmap vaste pixels heeft. Deze banners zijn DOM: tekst, logo,
+prijssticker en Trustpilot-sterren zijn vector of CSS en volgen automatisch de
+schermdichtheid. Het enige pixelmateriaal zijn de foto's, en die zijn 640x640
+bronbestanden tegen maximaal 300px weergave - ruim voldoende voor 2x in alle
+zestien formaten. De set is dus al retina-scherp op zijn eigen maten.
+
+Een 2x-variant is fysiek twee keer zo groot, met tekst op dubbele grootte. Zet
+hem dus alleen in waar de advertentieplek ook echt die maat heeft. In een
+plek van de basismaat loopt hij eruit.
+
+De `.gw-2x`-regels staan in dezelfde stylesheet als het 1x-formaat en doen
+niets zolang het wrapper-element ontbreekt, dus de gewone snippet blijft
+ongemoeid. Gemeten over alle negen: weergave exact 2x, interne layout
+onveranderd op de basismaat, 15s-freeze, afbeeldingen, kop, CTA en klik-URL
+allemaal goed.
 
 ## `.nojekyll`
 

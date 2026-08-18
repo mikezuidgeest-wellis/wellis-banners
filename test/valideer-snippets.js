@@ -22,7 +22,7 @@ const fs = require('fs');
 const path = require('path');
 
 const REPO = path.join(__dirname, '..');
-const MAPPEN = ['_AWIN_SNIPPETS', '_AWIN_SNIPPETS_DE'];
+const MAPPEN = ['_AWIN_SNIPPETS', '_AWIN_SNIPPETS_DE', '_AWIN_SNIPPETS_2X'];
 const CDN = 'https://mikezuidgeest-wellis.github.io/wellis-banners/';
 
 // Bestemming per markt. Duitse banners moeten naar het Duitse domein; ze
@@ -39,7 +39,11 @@ for (const map of MAPPEN) {
   if (!fs.existsSync(pad)) { fouten.push(`${map}/ ontbreekt volledig`); continue; }
 
   const bestanden = fs.readdirSync(pad).filter((f) => f.endsWith('.html'));
-  if (bestanden.length !== 16) fouten.push(`${map}/ heeft ${bestanden.length} bestanden, verwacht 16`);
+  // De 2x-map bevat alleen de maten waar Awin om vroeg (9), de talen elk 16.
+  const verwacht = map === '_AWIN_SNIPPETS_2X' ? 9 : 16;
+  if (bestanden.length !== verwacht) {
+    fouten.push(`${map}/ heeft ${bestanden.length} bestanden, verwacht ${verwacht}`);
+  }
 
   for (const b of bestanden) {
     gecontroleerd++;
@@ -59,9 +63,22 @@ for (const map of MAPPEN) {
       const gevonden = (code.match(/content="width=\d+,height=\d+"/) || ['ontbreekt'])[0];
       fouten.push(`${naam}: ad.size moet width=${B},height=${H} zijn, gevonden: ${gevonden}`);
     }
+    // De 2x-snippets lenen de stylesheet van het BASISformaat (de helft), want
+    // de banner zelf blijft die maat; alleen de wrapper schaalt hem op. base
+    // href en stylesheet horen dus naar het basisformaat te wijzen, terwijl
+    // ad.size de dubbele maat aangeeft.
+    const basisF = map === '_AWIN_SNIPPETS_2X' ? `${B / 2}x${H / 2}` : `${B}x${H}`;
     const base = (code.match(/<base href="([^"]+)"/) || [])[1];
-    if (base && base !== `${CDN}${B}x${H}/`) {
-      fouten.push(`${naam}: base href wijst naar ${base} i.p.v. ${CDN}${B}x${H}/`);
+    if (base && base !== `${CDN}${basisF}/`) {
+      fouten.push(`${naam}: base href wijst naar ${base} i.p.v. ${CDN}${basisF}/`);
+    }
+    if (map === '_AWIN_SNIPPETS_2X') {
+      if (!/class="gw-2x"/.test(code)) fouten.push(`${naam}: wrapper .gw-2x ontbreekt`);
+      if (!/class="gw-2x-inner"/.test(code)) fouten.push(`${naam}: .gw-2x-inner ontbreekt`);
+      if (B % 2 || H % 2) fouten.push(`${naam}: ${B}x${H} is geen even verdubbeling`);
+      if (!code.includes(`/${basisF}/styles.css`)) {
+        fouten.push(`${naam}: stylesheet moet die van ${basisF} zijn`);
+      }
     }
     if (/<script(?![^>]*\bsrc=)[^>]*>/i.test(code)) {
       fouten.push(`${naam}: bevat inline <script> - platforms strippen die`);

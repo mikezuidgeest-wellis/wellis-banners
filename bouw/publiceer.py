@@ -29,7 +29,7 @@ BUILD = os.path.join(REPO, ".build")
 # een <base href> en relatieve afbeeldingspaden. Zodra die base-tag wegviel
 # waren alle vijf de afbeeldingen stuk. Het te plakken artefact hoort in de
 # repo, net als al het andere.
-GEPUBLICEERD = ["shared", "assets", "_AWIN_SNIPPETS"]
+GEPUBLICEERD = ["shared", "assets", "_AWIN_SNIPPETS", "_AWIN_SNIPPETS_2X"]
 
 
 def formaatmappen(pad):
