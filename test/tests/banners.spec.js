@@ -272,3 +272,49 @@ test.describe('Awin-injectie', () => {
     });
   }
 });
+
+/**
+ * De entree mag niet afhangen van requestAnimationFrame.
+ *
+ * rAF wordt volledig bevroren zolang de inhoud niet gerenderd wordt: een
+ * achtergrondtab, een iframe buiten beeld, of een preview die de browser nog
+ * niet tekent. Gebeurde dat, dan werd 'is-loaded' nooit gezet en bleef ALLES
+ * op opacity 0: een lege teal doos met onzichtbare tekst erin. Precies wat de
+ * Awin-preview liet zien - kop netjes gevuld, opacity 0.
+ *
+ * Deze test blokkeert rAF volledig en eist dat de banner alsnog zichtbaar
+ * wordt. Zonder de setTimeout-vangnet in script.js faalt hij.
+ */
+test.describe('zonder requestAnimationFrame', () => {
+  for (const taal of TALEN) {
+    for (const formaat of ['300x250', '728x90', '300x600']) {
+      test(`${taal.code} ${formaat} - wordt zichtbaar zonder rAF`, async ({ page }) => {
+        await page.addInitScript(() => {
+          Math.random = () => 0.42;
+          // volledig doodleggen, niet vertragen: dat is wat een niet-gerenderd
+          // iframe effectief doet
+          window.requestAnimationFrame = function () { return 0; };
+        });
+        await page.goto(taal.pad(formaat), { waitUntil: 'load' });
+        await page.waitForTimeout(4000);
+
+        await expect(page.locator('.ad-container')).toHaveClass(/is-loaded/);
+
+        const zicht = await page.evaluate(() => {
+          const o = (s) => { const e = document.querySelector(s); return e ? +getComputedStyle(e).opacity : null; };
+          const kop = document.querySelector('.slide.is-active .headline') || document.querySelector('#headlineA');
+          return {
+            kopOpacity: kop ? +getComputedStyle(kop).opacity : null,
+            kopTekst: kop ? kop.textContent.trim().length : 0,
+            cta: o('.cta-button'),
+            logo: o('.logo-container'),
+          };
+        });
+        expect(zicht.kopTekst, 'kop is gevuld').toBeGreaterThan(4);
+        expect(zicht.kopOpacity, 'kop zichtbaar').toBeGreaterThan(0.9);
+        expect(zicht.cta, 'CTA zichtbaar').toBeGreaterThan(0.9);
+        if (zicht.logo !== null) expect(zicht.logo, 'logo zichtbaar').toBeGreaterThan(0.9);
+      });
+    }
+  }
+});

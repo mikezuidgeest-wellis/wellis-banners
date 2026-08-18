@@ -131,6 +131,22 @@ klikregistratie aan. `script.js` vergelijkt `window.clickTag` met zijn eigen
 standaardwaarde in plaats van hem eenmalig uit te lezen, want sommige servers
 injecteren pas kort voor de klik.
 
+**Geen `http://` in de creatie, waar dan ook.** Awin heeft een validator die de
+code weigert zodra de tekst `http://` bevat, ongeacht of er iets opgehaald
+wordt. Dat gold ook voor de XML-namespace van de inline SVG:
+`xmlns="http://www.w3.org/2000/svg"`. Daar strandde de 300x250 op. De bouw zet
+dat om naar `https://`; bij HTML-parsing bepaalt de browser de SVG-namespace
+zelf op basis van de tag, dus het attribuut is decoratief en het renderen
+verandert niet (gemeten: chevron 7x13, ongewijzigd).
+
+**De entree mag niet afhangen van `requestAnimationFrame`.** rAF wordt volledig
+bevroren zolang de inhoud niet gerenderd wordt: achtergrondtab, iframe buiten
+beeld, of een preview die de browser nog niet tekent. Gebeurde dat, dan werd
+`is-loaded` nooit gezet en bleef alles op `opacity: 0` staan - een lege teal
+doos met onzichtbare tekst erin. `script.js` start de entree daarom via rAF
+*en* via een `setTimeout`-vangnet, naar dezelfde idempotente functie. Timers
+worden in een achtergrondtab afgeknepen, maar stoppen nooit helemaal.
+
 **`<meta name="ad.size">` moet erin.** Awin en de IAB-validators gebruiken het
 om de creatie te plaatsen.
 

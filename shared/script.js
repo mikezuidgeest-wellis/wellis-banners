@@ -77,14 +77,34 @@ function createBannerSystem(ROOT) {
   var BannerSystem = {
     init: function() {
         this.cacheDOM();
-        
-        // Ensure browser is ready before firing hardware-accelerated animations
-        requestAnimationFrame(() => {
-            this.startEntranceSequence();
-            this.initTrustpilotCounter();
-            this.initStoryRotation();
-            this.initStickerReplay();
-        });
+
+        /* De entree mag NIET afhangen van requestAnimationFrame.
+           rAF wordt volledig bevroren zolang de inhoud niet gerenderd wordt:
+           een achtergrondtab, een iframe buiten het beeld, of een preview die
+           de browser nog niet tekent. Vuurt rAF niet, dan wordt 'is-loaded'
+           nooit gezet en blijft ALLES op opacity 0 staan - een lege teal doos
+           met onzichtbare tekst erin.
+
+           Gemeten in de Awin-preview: klasse bleef 'ad-container', kop gevuld
+           met tekst maar opacity 0, logo 0, CTA 0. Met rAF geblokkeerd is dat
+           exact te reproduceren.
+
+           Daarom twee aanzetten naar dezelfde idempotente start: rAF voor een
+           vloeiend eerste frame als het kan, en een timer als vangnet. Timers
+           worden in een achtergrondtab afgeknepen tot ongeveer een per seconde,
+           maar ze stoppen nooit helemaal - in tegenstelling tot rAF. */
+        var self = this;
+        var gestart = false;
+        function start() {
+            if (gestart) return;
+            gestart = true;
+            self.startEntranceSequence();
+            self.initTrustpilotCounter();
+            self.initStoryRotation();
+            self.initStickerReplay();
+        }
+        if (typeof requestAnimationFrame === "function") requestAnimationFrame(start);
+        setTimeout(start, 150);
 
         // IAB / CM360 / publisher compliance: animation must not run longer than
         // 15s and must hold a static end frame (CTA visible). Freeze at 15s.

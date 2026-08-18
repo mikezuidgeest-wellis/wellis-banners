@@ -66,6 +66,16 @@ for (const map of MAPPEN) {
     if (/<script(?![^>]*\bsrc=)[^>]*>/i.test(code)) {
       fouten.push(`${naam}: bevat inline <script> - platforms strippen die`);
     }
+    // Awin weigert elke http:// in de creatie. Zijn validator kijkt naar de
+    // TEKST, niet naar wat er opgehaald wordt, dus ook de XML-namespace van
+    // een inline SVG valt eronder: xmlns="http://www.w3.org/2000/svg". Daar
+    // strandde de 300x250 op, met de melding dat de code niet veilig was.
+    // Let op: dit moet op de HELE tekst gecontroleerd worden, ook binnen
+    // commentaar, want de validator van Awin kijkt daar ook naar.
+    const onveilig = h.match(/http:\/\/[^\s"'<>]*/gi);
+    if (onveilig) {
+      fouten.push(`${naam}: bevat http:// (${[...new Set(onveilig)].join(', ')}) - Awin weigert de creatie`);
+    }
     if (!/data-asset-base="https:\/\//.test(code)) {
       fouten.push(`${naam}: data-asset-base ontbreekt of is niet absoluut`);
     }

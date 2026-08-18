@@ -296,6 +296,20 @@ def bouw_index(bron_html, formaat, awin=False):
     shared = (CDN + "/shared/") if awin else "../shared/"
     css_href = (CDN + "/" + formaat + "/styles.css") if awin else "styles.css"
 
+    # Awin weigert elke http:// in de creatie. Zijn validator kijkt naar de
+    # TEKST, niet naar wat er opgehaald wordt, dus ook de XML-namespace van een
+    # inline SVG valt eronder: xmlns="http://www.w3.org/2000/svg". Dat is een
+    # identifier, geen netwerkverzoek, maar de creatie werd erop afgekeurd.
+    #
+    # https is hier veilig: bij HTML-parsing bepaalt de parser zelf de
+    # SVG-namespace op basis van de tag, het attribuut is decoratief. Gemeten
+    # na de wijziging: chevron rendert 7x13, ongewijzigd.
+    #
+    # Hier in de bouw en niet in bron/, want bron/ is een Figma-export die
+    # opnieuw geexporteerd kan worden en dan weer http:// bevat.
+    body = body.replace('xmlns="http://www.w3.org/2000/svg"',
+                        'xmlns="https://www.w3.org/2000/svg"')
+
     # relatieve asset-verwijzingen absoluut maken
     body = re.sub(r'src="(?!https?://)([^"/][^"]*\.(?:svg|webp|png|jpg))"',
                   lambda m: 'src="' + basis + m.group(1) + '"', body)

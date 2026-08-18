@@ -49,6 +49,11 @@ def duitse_body(bron_html):
     # scripttags eruit; die zetten we zelf opnieuw
     body = re.sub(r"\s*<script\b[^>]*>.*?</script>", "", body, flags=re.S).strip()
 
+    # Awin weigert elke http:// in de creatie, ook de XML-namespace van een
+    # inline SVG. Zie de toelichting in bouw_formaten.py.
+    body = body.replace('xmlns="http://www.w3.org/2000/svg"',
+                        'xmlns="https://www.w3.org/2000/svg"')
+
     # assets absoluut maken
     body = re.sub(r'src="(?!https?://)([^"/][^"]*\.(?:svg|webp|png|jpg))"',
                   lambda m: 'src="' + CDN + '/assets/' + m.group(1) + '"', body)
