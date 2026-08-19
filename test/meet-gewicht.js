@@ -45,7 +45,7 @@ const zwaarste2 = fotos.slice(0, 2);
 const rijen = [];
 const fouten = [];
 
-for (const map of ['_AWIN_SNIPPETS', '_AWIN_SNIPPETS_DE', '_AWIN_SNIPPETS_2X']) {
+for (const map of ['_AWIN_SNIPPETS', '_AWIN_SNIPPETS_DE', '_AWIN_SNIPPETS_2X', '_AWIN_SNIPPETS_DE_2X']) {
   const dir = path.join(REPO, map);
   if (!fs.existsSync(dir)) continue;
   for (const b of fs.readdirSync(dir).filter(x => x.endsWith('.html')).sort()) {

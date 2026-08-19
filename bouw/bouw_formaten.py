@@ -290,24 +290,45 @@ def bouw_css(bron_css, img_klassen=None):
     return browser_fallbacks(RESET + css_scoped)
 
 
-def css_noscript(css):
-    """Haalt de zichtbaar-maak-regels uit het reduced-motion-blok en levert ze
-    als los CSS-blok, bedoeld voor <noscript>.
+def _blok_na(css, kop):
+    """Pakt de inhoud van een CSS-blok door accolades te tellen.
 
-    Zonder JavaScript wordt 'is-loaded' nooit gezet en blijven kop, logo,
-    prijssticker, CTA en Trustpilot-balk op opacity 0 staan. Gemeten op
-    300x250: een screenshot van 1422 bytes met twee kleuren - een leeg teal
-    vlak. Er zit ook geen <a> in de markup, dus zelfs klikken deed niets.
+    Deed dit eerder met een regex die een sluitende accolade na een newline
+    verwachtte. De meeste stylesheets sluiten het reduced-motion-blok af met
+    "}}" op een regel, dus die regex faalde stil: 38 van de 50 snippets kregen
+    een LEEG noscript-blok. Dat viel niet op omdat 300x250 een van de vier was
+    die wel werkten - een van de weinige formaten die ik met de hand had
+    nagekeken.
 
-    Het reduced-motion-blok zet die opacity's al onvoorwaardelijk. Precies wat
-    we hier nodig hebben, dus we hergebruiken die regels in plaats van een
-    tweede waarheid te introduceren die kan gaan afwijken.
+    Accolades tellen is de enige betrouwbare manier, want de inhoud bevat zelf
+    accolades.
     """
-    import re as _re
-    m = _re.search(r"@media \(prefers-reduced-motion: reduce\)\{(.*?)\n\}", css, _re.S)
-    if not m:
+    i = css.find(kop)
+    if i < 0:
         return ""
-    return m.group(1).strip()
+    i = css.find("{", i)
+    if i < 0:
+        return ""
+    diepte, j = 0, i
+    while j < len(css):
+        if css[j] == "{":
+            diepte += 1
+        elif css[j] == "}":
+            diepte -= 1
+            if diepte == 0:
+                return css[i + 1:j].strip()
+        j += 1
+    return ""
+
+
+def css_noscript(css):
+    """De zichtbaar-maak-regels als los blok, voor <noscript>.
+
+    Zonder JavaScript wordt is-loaded nooit gezet en blijft alles op opacity 0.
+    Het reduced-motion-blok zet die opacity's al onvoorwaardelijk; we
+    hergebruiken die regels in plaats van een tweede waarheid te introduceren.
+    """
+    return _blok_na(css, "@media (prefers-reduced-motion: reduce)")
 
 
 def css_2x(formaat):

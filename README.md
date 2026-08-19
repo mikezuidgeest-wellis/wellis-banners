@@ -28,6 +28,7 @@ teruggedraaid. De GitHub Action controleert daarop en zet de build op rood.
 | `_AWIN_SNIPPETS/` | Gegenereerd. De HTML om in de Awin-editor te plakken, Nederlands. | ja |
 | `_AWIN_SNIPPETS_DE/` | Idem, Duits. | ja |
 | `_AWIN_SNIPPETS_2X/` | Gegenereerd. Negen maten op dubbele grootte, voor plekken die daadwerkelijk twee keer zo groot zijn. | ja |
+| `_AWIN_SNIPPETS_DE_2X/` | Idem, Duits. | ja |
 | `.build/` | Tussenstap van de bouw. | nee, genegeerd |
 
 Dat de gegenereerde bestanden meegaan in git is met opzet: GitHub Pages serveert
@@ -58,7 +59,7 @@ Groen vinkje = goed. GitHub Pages ververst binnen een minuut of twee.
 | Ik wil wijzigen | Bestand |
 |---|---|
 | Koppen, prijs, CTA-tekst (NL) | `bron/shared/banner-data.js` |
-| Duitse vertaling en prijs | `bron/shared/_i18n.js` |
+| Duitse vertaling en prijs | `bron/shared/_i18n.js` (de bouw leest deze tabellen) |
 | Trustpilot-aantal | `bron/shared/script.js` (`PLATEAU`) |
 | Rotatiesnelheid, 15s-limiet | `bron/shared/script.js` |
 | Welke foto's, randomisatielogica | `bron/shared/randomizer.js` |
@@ -161,6 +162,34 @@ van 2720. Verwijs er nooit naar.
 ```bash
 cd test && npm run snippet-lint
 ```
+
+## De Duitse set
+
+De Duitse copy staat **in de markup**, niet in een script dat hem in de browser
+aanbrengt. Dat was eerst anders: de Duitse markup was honderd procent Nederlands
+en `_i18n.js` vertaalde hem bij het laden. Viel dat bestand weg — netwerkfout,
+blokkade, adblocker — dan zag een Duitse bezoeker **€149** in plaats van 172 €.
+Geen foutmelding, alleen een verkeerde prijs op een andere markt. Dat is geen
+taalprobleem maar een prijsprobleem.
+
+Hoe het nu werkt:
+
+- `bouw/bouw_duits.py` leest de vertaaltabellen uit `bron/shared/_i18n.js`.
+  Dat bestand blijft de enige plek waar de Duitse teksten staan; de bouw
+  dupliceert ze niet. Wijzig je een tekst daar, dan volgt de markup automatisch.
+- De bouw schrijft `shared/banner-data-de.js`: dezelfde data, Duitse koppenpool.
+  `randomizer.js` kiest daaruit, dus de boodschap is Duits zonder tussenstap.
+- `_i18n.js` wordt nog wel meegeladen, maar alleen nog voor de Trustpilot-regel.
+  Die kiest per formaat een passende lengtevariant, want Duits is langer dan
+  Nederlands. Valt dat script weg, dan is de banner nog volledig Duits en staat
+  alleen die ene regel niet optimaal afgebroken.
+
+Gemeten op 300x250 zonder `_i18n.js`: CTA "Jetzt abnehmen", prijs 172 €,
+alt-tekst Duits, klik naar `https://www.getwellis.de/`.
+
+`data-skip-headlines` wordt nu meevertaald. Die stond in Nederlandse strings die
+na vertaling nergens op matchten, dus de opt-out was in het Duits stil
+uitgeschakeld — juist waar je hem wilt, want Duits is langer.
 
 ## De 2x-varianten
 

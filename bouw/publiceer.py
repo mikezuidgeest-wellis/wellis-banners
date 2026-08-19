@@ -77,9 +77,19 @@ def main():
     for f in formaatmappen(os.path.join(de, "de")):
         kopieer(os.path.join(de, "de", f), os.path.join(REPO, "de", f), telling)
 
-    snip_de = os.path.join(de, "_AWIN_SNIPPETS_DE")
-    if os.path.isdir(snip_de):
-        kopieer(snip_de, os.path.join(REPO, "_AWIN_SNIPPETS_DE"), telling)
+    for naam in ("_AWIN_SNIPPETS_DE", "_AWIN_SNIPPETS_DE_2X"):
+        pad = os.path.join(de, naam)
+        if os.path.isdir(pad):
+            kopieer(pad, os.path.join(REPO, naam), telling)
+
+    # De Duitse bouw schrijft OOK in shared/: banner-data-de.js, de koppenpool
+    # met Duitse teksten. Zonder deze regel bleef dat bestand in .build/de
+    # achter en gaf het live een 404 - de Duitse banners vielen dan terug op de
+    # standaardkop en toonden geen wisselende boodschap. Gemist omdat "shared"
+    # hierboven alleen uit de NL-build wordt gehaald.
+    shared_de = os.path.join(de, "shared")
+    if os.path.isdir(shared_de):
+        kopieer(shared_de, os.path.join(REPO, "shared"), telling)
 
     print("ongewijzigd : %d bestanden" % telling["gelijk"])
     print("nieuw       : %d" % len(telling["nieuw"]))

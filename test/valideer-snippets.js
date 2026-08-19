@@ -22,7 +22,7 @@ const fs = require('fs');
 const path = require('path');
 
 const REPO = path.join(__dirname, '..');
-const MAPPEN = ['_AWIN_SNIPPETS', '_AWIN_SNIPPETS_DE', '_AWIN_SNIPPETS_2X'];
+const MAPPEN = ['_AWIN_SNIPPETS', '_AWIN_SNIPPETS_DE', '_AWIN_SNIPPETS_2X', '_AWIN_SNIPPETS_DE_2X'];
 const CDN = 'https://mikezuidgeest-wellis.github.io/wellis-banners/';
 
 // Bestemming per markt. Duitse banners moeten naar het Duitse domein; ze
@@ -40,7 +40,7 @@ for (const map of MAPPEN) {
 
   const bestanden = fs.readdirSync(pad).filter((f) => f.endsWith('.html'));
   // De 2x-map bevat alleen de maten waar Awin om vroeg (9), de talen elk 16.
-  const verwacht = map === '_AWIN_SNIPPETS_2X' ? 9 : 16;
+  const verwacht = /_2X$/.test(map) ? 9 : 16;
   if (bestanden.length !== verwacht) {
     fouten.push(`${map}/ heeft ${bestanden.length} bestanden, verwacht ${verwacht}`);
   }
@@ -58,7 +58,7 @@ for (const map of MAPPEN) {
     // ad.size en base href moeten bij DIT formaat horen, niet bij een ander.
     // Een generieke check op "staat er een ad.size" laat een kopieerfout door,
     // en dan plaatst Awin de creatie in het verkeerde slot.
-    const taal = map === '_AWIN_SNIPPETS_DE' ? 'de' : 'nl';
+    const taal = /_DE(_2X)?$/.test(map) ? 'de' : 'nl';
     const [B, H] = b.replace('.html', '').split('x');
     if (!code.includes(`<meta name="ad.size" content="width=${B},height=${H}">`)) {
       const gevonden = (code.match(/content="width=\d+,height=\d+"/) || ['ontbreekt'])[0];
@@ -68,12 +68,12 @@ for (const map of MAPPEN) {
     // de banner zelf blijft die maat; alleen de wrapper schaalt hem op. base
     // href en stylesheet horen dus naar het basisformaat te wijzen, terwijl
     // ad.size de dubbele maat aangeeft.
-    const basisF = map === '_AWIN_SNIPPETS_2X' ? `${B / 2}x${H / 2}` : `${B}x${H}`;
+    const basisF = /_2X$/.test(map) ? `${B / 2}x${H / 2}` : `${B}x${H}`;
     const base = (code.match(/<base href="([^"]+)"/) || [])[1];
     if (base && base !== `${CDN}${basisF}/`) {
       fouten.push(`${naam}: base href wijst naar ${base} i.p.v. ${CDN}${basisF}/`);
     }
-    if (map === '_AWIN_SNIPPETS_2X') {
+    if (/_2X$/.test(map)) {
       if (!/class="gw-2x"/.test(code)) fouten.push(`${naam}: wrapper .gw-2x ontbreekt`);
       if (!/class="gw-2x-inner"/.test(code)) fouten.push(`${naam}: .gw-2x-inner ontbreekt`);
       if (B % 2 || H % 2) fouten.push(`${naam}: ${B}x${H} is geen even verdubbeling`);
@@ -109,16 +109,44 @@ for (const map of MAPPEN) {
       if (!code.toLowerCase().includes(tag.toLowerCase())) fouten.push(`${naam}: ${tag} ontbreekt`);
     }
     if (!/<link rel="stylesheet"/.test(code)) fouten.push(`${naam}: geen stylesheet`);
+
+    // Het <noscript>-blok maakt de banner zichtbaar als er geen JavaScript
+    // draait. Een LEEG blok is erger dan geen blok: het ziet eruit alsof de
+    // maatregel er is. Dat gebeurde: een regex die een sluitende accolade na
+    // een newline verwachtte faalde stil op 38 van de 50 snippets, en dat viel
+    // niet op omdat 300x250 een van de vier was die wel werkte.
+    const ns = (h.match(/<noscript><style>([\s\S]*?)<\/style><\/noscript>/) || [])[1];
+    if (ns === undefined) {
+      fouten.push(`${naam}: geen <noscript>-blok`);
+    } else if (ns.trim().length < 100 || !/opacity\s*:\s*1/.test(ns)) {
+      fouten.push(`${naam}: <noscript>-blok is leeg of zet geen opacity (${ns.trim().length} tekens)`);
+    }
     // _i18n.js hoort ALLEEN in de Duitse snippets. Op Nederlands returnt dat
     // bestand direct bij getLang() !== "de" en kost het 16 KB per impressie
     // voor niets - meetbaar, want het gewicht zat al tegen de 150 KB aan.
-    const nodig = ['banner-data.js', 'randomizer.js', 'script.js'];
+    const nodig = [taal === 'de' ? 'banner-data-de.js' : 'banner-data.js', 'randomizer.js', 'script.js'];
     if (taal === 'de') nodig.push('_i18n.js');
     for (const js of nodig) {
       if (!code.includes(js)) fouten.push(`${naam}: script ${js} ontbreekt`);
     }
     if (taal !== 'de' && /_i18n\.js/.test(code)) {
       fouten.push(`${naam}: laadt _i18n.js maar is Nederlands - 16 KB voor niets`);
+    }
+    if (taal === 'de') {
+      // De Duitse copy hoort IN de markup te staan. Hing die aan _i18n.js in de
+      // browser, dan zag een Duitse bezoeker bij een netwerkfout EUR149 in
+      // plaats van 172 EUR - een prijsfout op een andere markt, zonder melding.
+      const heeftPrijs = /class="price-main"/.test(code);
+      if (heeftPrijs && !/172\u202f&euro;|172 &euro;/.test(code)) {
+        fouten.push(`${naam}: Duitse prijs staat niet in de markup`);
+      }
+      if (heeftPrijs && /&euro;149/.test(code)) {
+        fouten.push(`${naam}: Nederlandse prijs 149 staat in een Duitse creatie`);
+      }
+      if (/>Start met afvallen</.test(code)) fouten.push(`${naam}: CTA is nog Nederlands`);
+      if (/>vanaf</.test(code)) fouten.push(`${naam}: prijslabel is nog Nederlands`);
+      if (/alt="Tevreden klant"/.test(code)) fouten.push(`${naam}: alt-tekst is nog Nederlands`);
+      if (!/banner-data-de\.js/.test(code)) fouten.push(`${naam}: laadt de Nederlandse koppenpool`);
     }
     if (!new RegExp(`data-lang="${taal}"`).test(code)) {
       fouten.push(`${naam}: data-lang="${taal}" ontbreekt`);
