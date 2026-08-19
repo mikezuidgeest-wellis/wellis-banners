@@ -157,10 +157,27 @@ function meet(f){
       d.head.appendChild(pauze); }
     void ad.offsetWidth;
     var a = ad.getBoundingClientRect();
+    /* Alleen ZICHTBARE elementen kunnen zichtbaar buiten het kader vallen.
+       Tijdens de entree staan kop en Trustpilot-balk bewust verschoven met
+       opacity 0 (gemeten: translateX(38px) en translateY(8px)), en een
+       niet-actieve slide staat volledig op opacity 0. Werd daar niet op
+       gefilterd, dan meldde de meting 8 van de 16 formaten als afwijking terwijl
+       er niets te zien was - precies het geval dat optreedt als de animatie niet
+       doorloopt, bijvoorbeeld in een tabblad op de achtergrond. */
+    var zichtbaar = function(e){
+      var n = e;
+      while (n && n !== ad.parentNode){
+        var cs = w.getComputedStyle(n);
+        if (+cs.opacity < 0.05 || cs.visibility === "hidden" || cs.display === "none") return false;
+        n = n.parentElement;
+      }
+      return true;
+    };
     var buiten = [];
     [".price-container",".cta-button",".trust-container",".headline",".logo-image",".hero-container"]
-      .forEach(function(s){ var e = ad.querySelector(s); if(!e) return;
+      .forEach(function(s){ var e = ad.querySelector(s); if(!e || !zichtbaar(e)) return;
         var r = e.getBoundingClientRect();
+        if (r.width === 0 && r.height === 0) return;
         if (r.left-a.left < -0.5 || a.right-r.right < -0.5 || r.top-a.top < -0.5 || a.bottom-r.bottom < -0.5) buiten.push(s); });
     var afgekapt = [];
     ad.querySelectorAll(".headline,.cta-label,.tp-reviews").forEach(function(e){
