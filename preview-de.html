@@ -101,12 +101,28 @@ function vul(f){
     if (!d) return;
     w.__na_load = d.readyState;
     w.__fouten = [];
-    w.addEventListener("error", function(e){ w.__fouten.push(e.message || "fout"); }, true);
+    w.addEventListener("error", function(e){
+      /* Bij een resource-fout is e.message leeg; de bron zit in e.target. Zonder
+         die naam stond er alleen "fout" in de tabel en was niet te zien WAT er
+         misging. */
+      var t = e.target;
+      var bron = t && t.tagName ? (t.tagName + " " + String(t.src || t.href || "").split("/").pop()) : "";
+      w.__fouten.push(e.message || ("LAADFOUT " + bron) || "fout");
+    }, true);
     w.LANG = "de";
     w.WELLIS_ASSET_BASE = CDN + "/assets/";
     var st = d.createElement("style");
     st.textContent = VUIL + "body{margin:8px;background:#fff}";
     d.head.appendChild(st);
+    /* Base-element eerst. Het iframe heeft geen eigen URL, dus relatieve paden
+       lossen op vanaf preview.html - een niveau te hoog. Op GitHub Pages werd
+       "../assets/foto.webp" daardoor github.io/assets/... in plaats van
+       github.io/wellis-banners/assets/..., en gaven alle zes de afbeeldingen een
+       404. Lokaal viel dat niet op, want daar staat de site in de root en
+       resolveert ../assets/ per ongeluk goed. Met een base per formaat lossen de
+       paden exact zo op als op de losse pagina. */
+    var bs = d.createElement("base"); bs.href = CDN + "/" + f + "/";
+    d.head.appendChild(bs);
     var lk = d.createElement("link"); lk.rel = "stylesheet";
     lk.href = CDN + "/" + f + "/styles.css?t=" + Date.now();
     d.head.appendChild(lk);
